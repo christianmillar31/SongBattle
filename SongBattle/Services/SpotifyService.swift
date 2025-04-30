@@ -92,21 +92,20 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
-        // Create configuration
+        // Create configuration - only clientID and redirectURL
         let configuration = SPTConfiguration(
             clientID: Configuration.spotifyClientId,
             redirectURL: redirectURL
         )
-        self.configuration = configuration  // Store the configuration
+        self.configuration = configuration
         
         print("DEBUG: Configuration created with:")
         print("DEBUG: ▶️ clientID → \(configuration.clientID)")
         print("DEBUG: ▶️ redirectURL → \(configuration.redirectURL.absoluteString)")
         
-        // Initialize session manager first
-        print("DEBUG: Creating new session manager")
+        // Instantiate the one-and-only session manager immediately after configuration
         sessionManager = SPTSessionManager(configuration: configuration, delegate: self)
-        print("DEBUG: ▶️ Created sessionManager with redirect → \(sessionManager!.configuration.redirectURL.absoluteString)")
+        print("DEBUG: Created sessionManager with redirect → \(sessionManager!.configuration.redirectURL.absoluteString)")
         
         // Initialize app remote
         if appRemote == nil {
@@ -154,9 +153,10 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 return
             }
             print("DEBUG: Using session manager with redirect URL → \(sessionManager.configuration.redirectURL.absoluteString)")
+            // Use PKCE flow with clientOnly option
             sessionManager.initiateSession(
                 with: scope,
-                options: .clientOnly,  // Use PKCE flow
+                options: .clientOnly,
                 campaign: "SongBattleLogin"
             )
         }
