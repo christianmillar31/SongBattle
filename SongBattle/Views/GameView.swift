@@ -81,8 +81,10 @@ struct GameView: View {
             }
         }
         .sheet(isPresented: $showingScoreSheet) {
-            ScoreSheetView()
-                .environmentObject(gameService)
+            ScoreSheetView(
+                gameService: gameService,
+                spotifyService: gameService.spotifyService
+            )
         }
     }
     

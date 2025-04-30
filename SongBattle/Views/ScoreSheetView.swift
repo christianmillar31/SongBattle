@@ -1,14 +1,17 @@
 import SwiftUI
 
 struct ScoreSheetView: View {
-    @EnvironmentObject var gameService: GameService
+    let gameService: GameService
+    let spotifyService: SpotifyService
     @Environment(\.presentationMode) var presentationMode
     
     // Create two arrays that match the number of teams
     @State private var titleToggles: [Bool]
     @State private var artistToggles: [Bool]
     
-    init() {
+    init(gameService: GameService, spotifyService: SpotifyService) {
+        self.gameService = gameService
+        self.spotifyService = spotifyService
         // Initialize the toggle arrays with the correct count
         _titleToggles = State(initialValue: Array(repeating: false, count: 2))
         _artistToggles = State(initialValue: Array(repeating: false, count: 2))
@@ -66,6 +69,8 @@ struct ScoreSheetView: View {
 #Preview {
     let spotifyService = SpotifyService()
     let gameService = GameService(spotifyService: spotifyService)
-    return ScoreSheetView()
-        .environmentObject(gameService)
+    return ScoreSheetView(
+        gameService: gameService,
+        spotifyService: spotifyService
+    )
 } 

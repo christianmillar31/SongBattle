@@ -75,6 +75,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     private var connectionTimer: Timer?
     private var lastConnectionAttempt: Date?
     private let minimumConnectionInterval: TimeInterval = 2.0 // Minimum time between connection attempts
+    private let maxBackoffInterval: TimeInterval = 60.0 // Maximum backoff time in seconds
     
     // Track played songs to prevent repetition
     private var playedSongs: Set<String> = []
@@ -87,6 +88,36 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         error = nil
         authenticationError = nil
         isConnected = false
+    }
+    
+    private func calculateBackoffInterval() -> TimeInterval {
+        // Exponential backoff: 2^n seconds, where n is the retry count
+        let interval = pow(2.0, Double(connectionRetryCount))
+        // Cap at maxBackoffInterval
+        return min(interval, maxBackoffInterval)
+    }
+    
+    private func retryConnection() {
+        guard connectionRetryCount < maxConnectionRetries else {
+            print("DEBUG: Max retries reached, giving up")
+            isConnecting = false
+            error = SpotifyError.connectionFailed("Max retries reached")
+            return
+        }
+        
+        connectionRetryCount += 1
+        let backoffInterval = calculateBackoffInterval()
+        print("DEBUG: Retrying connection in \(backoffInterval) seconds (attempt \(connectionRetryCount))")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + backoffInterval) { [weak self] in
+            self?.connect()
+        }
+    }
+    
+    private func handleConnectionFailure(_ error: Error?) {
+        print("DEBUG: Connection failed with error: \(String(describing: error))")
+        self.error = error
+        retryConnection()
     }
     
     private func setupSpotifyIfNeeded() {
@@ -689,5 +720,15 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 }
             }
         }
+    }
+    
+    func selectRandomSong() -> Track {
+        return Track(
+            id: UUID().uuidString,
+            name: "Sample Song",  // Changed from title to name
+            artist: "Sample Artist",
+            previewUrl: "spotify:track:sample",  // Changed from uri to previewUrl
+            albumArtUrl: nil
+        )
     }
 } 

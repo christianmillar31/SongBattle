@@ -28,6 +28,7 @@ class GameService: ObservableObject {
     }
     
     private func setupSubscriptions() {
+        // Observe connection state and current track
         spotifyService.$isConnected
             .combineLatest(spotifyService.$currentTrack)
             .receive(on: RunLoop.main)
@@ -37,6 +38,24 @@ class GameService: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+        
+        // Observe playback failures
+        spotifyService.$error
+            .receive(on: RunLoop.main)
+            .sink { [weak self] error in
+                if error != nil {
+                    // Handle playback error - maybe restart round or show error
+                    self?.handlePlaybackError()
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func handlePlaybackError() {
+        // If in a game, try to restart the round or show error
+        if gameState == .inProgress {
+            startNewRound()
+        }
     }
     
     func startGame() {
@@ -63,7 +82,7 @@ class GameService: ObservableObject {
     }
     
     func submitScores(team1Title: Bool, team1Artist: Bool, team2Title: Bool, team2Artist: Bool) {
-        guard let round = currentRound, round.song != nil else { return }
+        guard let song = currentRound?.song else { return }
         
         // Award points to team 1
         if team1Title {
