@@ -252,9 +252,19 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     }
     
     func playRandomSong() {
-        guard let appRemote = appRemote, appRemote.isConnected else {
-            print("DEBUG: Not connected to Spotify")
+        guard let appRemote = appRemote else {
+            print("DEBUG: AppRemote not initialized")
             connect()
+            return
+        }
+        
+        if !appRemote.isConnected {
+            print("DEBUG: Not connected to Spotify, attempting to connect...")
+            connect()
+            // Set up a delayed retry after connection
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.playRandomSong()
+            }
             return
         }
         
@@ -270,7 +280,19 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             
             if let error = error {
                 print("DEBUG: Error fetching recommended content: \(error.localizedDescription)")
-                self.handleConnectionError(error)
+                // Handle end of stream specifically
+                if let nsError = error as NSError?,
+                   nsError.domain == "com.spotify.app-remote.transport",
+                   nsError.code == -2001 {
+                    print("DEBUG: End of stream detected, reconnecting...")
+                    self.connect()
+                    // Retry the playRandomSong after a delay
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                        self?.playRandomSong()
+                    }
+                } else {
+                    self.handleConnectionError(error)
+                }
                 return
             }
             
@@ -281,7 +303,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             
             // Filter for container items (playlists) only
             let playlists = items.filter { item in
-                let isContainer = item.container
+                let isContainer = item.isContainer
                 if !isContainer {
                     print("DEBUG: Skipping non-container item: \(item.title ?? "Unknown")")
                 }
@@ -542,8 +564,16 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             print("DEBUG: Disconnected from Spotify:", error?.localizedDescription ?? "no error")
             self.isConnected = false
             if let error = error {
-                self.error = SpotifyError.connectionFailed(error.localizedDescription)
-                self.authenticationError = error
+                // Handle end of stream specifically
+                if let nsError = error as NSError?,
+                   nsError.domain == "com.spotify.app-remote.transport",
+                   nsError.code == -2001 {
+                    print("DEBUG: End of stream detected during disconnect, attempting to reconnect...")
+                    self.connect()
+                } else {
+                    self.error = SpotifyError.connectionFailed(error.localizedDescription)
+                    self.authenticationError = error
+                }
             }
             self.isConnecting = false
             cleanup()
