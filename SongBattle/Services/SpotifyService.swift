@@ -103,10 +103,16 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
+        print("DEBUG: Configuration created with:")
+        print("DEBUG: ▶️ clientID → \(configuration.clientID)")
+        print("DEBUG: ▶️ redirectURL → \(configuration.redirectURL.absoluteString)")
+        
         // Initialize session manager first
         if sessionManager == nil {
             print("DEBUG: Creating new session manager")
-            sessionManager = SPTSessionManager(configuration: configuration, delegate: self)
+            let manager = SPTSessionManager(configuration: configuration, delegate: self)
+            sessionManager = manager
+            print("DEBUG: ▶️ sessionManager created with redirectURL → \(configuration.redirectURL.absoluteString)")
         }
         
         // Initialize app remote
@@ -262,71 +268,34 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // MARK: - URL Handling
     
     func handleURL(_ url: URL) -> Bool {
-        print("DEBUG: Handling URL: \(url)")
+        print("DEBUG: Received URL: \(url.absoluteString)")
+        print("DEBUG: Handling URL: \(url.absoluteString)")
         
-        // Let the session manager handle the URL first
-        if let sessionManager = sessionManager {
-            let handled = sessionManager.application(
-                UIApplication.shared,
-                open: url,
-                options: [:]
-            )
-            print("DEBUG: URL handled by session manager: \(handled)")
-            return handled
-        }
-        
-        // Fallback to app remote handling if session manager didn't handle it
-        guard let appRemote = appRemote else {
-            print("ERROR: appRemote is nil when handling URL")
+        guard let sessionManager = sessionManager else {
+            print("DEBUG: No session manager available")
             return false
         }
         
-        let parameters = appRemote.authorizationParameters(from: url)
-        print("DEBUG: Auth parameters: \(String(describing: parameters))")
-        
-        if let parameters = parameters as? [String: Any],
-           let accessToken = parameters[SPTAppRemoteAccessTokenKey] as? String {
-            print("DEBUG: Successfully got access token")
-            Task { @MainActor in
-                self.accessToken = accessToken
-                self.appRemote?.connectionParameters.accessToken = accessToken
-                self.appRemote?.connect()
-            }
-            return true
-        } else if let parameters = parameters as? [String: Any] {
-            print("DEBUG: Received parameters: \(parameters)")
-            if let errorDescription = parameters[SPTAppRemoteErrorDescriptionKey] as? String {
-                print("ERROR: Spotify auth failed: \(errorDescription)")
-                Task { @MainActor in
-                    self.error = NSError(
-                        domain: "Spotify",
-                        code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: errorDescription]
-                    )
-                    self.authenticationError = self.error
-                    self.isConnecting = false
-                }
-            }
-        }
-        
-        return false
+        let handled = sessionManager.application(UIApplication.shared, open: url, options: [:])
+        print("DEBUG: ▶️ onOpenURL handled by sessionManager: \(handled)")
+        return handled
     }
     
     // MARK: - SPTSessionManagerDelegate
     
-    func sessionManager(manager: SPTSessionManager, didInitiate session: SPTSession) {
-        print("DEBUG: Session initiated successfully")
-        print("DEBUG: Access token: \(session.accessToken)")
-        print("DEBUG: Expiration date: \(session.expirationDate)")
-        
+    nonisolated func sessionManager(manager: SPTSessionManager, didInitiate session: SPTSession) {
         Task { @MainActor in
+            print("DEBUG: Session initiated successfully")
+            print("DEBUG: Access token: \(session.accessToken)")
+            print("DEBUG: Expiration date: \(session.expirationDate)")
+            
             self.accessToken = session.accessToken
             self.appRemote?.connectionParameters.accessToken = session.accessToken
             self.appRemote?.connect()
         }
     }
     
-    func sessionManager(manager: SPTSessionManager, didFailWith error: Error) {
+    nonisolated func sessionManager(manager: SPTSessionManager, didFailWith error: Error) {
         Task { @MainActor in
             print("ERROR: Failed to initialize session: \(error)")
             print("ERROR: Localized description: \(error.localizedDescription)")
@@ -340,12 +309,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
     }
     
-    func sessionManager(manager: SPTSessionManager, didRenew session: SPTSession) {
-        print("DEBUG: Session renewed successfully")
-        print("DEBUG: New access token: \(session.accessToken)")
-        print("DEBUG: New expiration date: \(session.expirationDate)")
-        
+    nonisolated func sessionManager(manager: SPTSessionManager, didRenew session: SPTSession) {
         Task { @MainActor in
+            print("DEBUG: Session renewed successfully")
+            print("DEBUG: New access token: \(session.accessToken)")
+            print("DEBUG: New expiration date: \(session.expirationDate)")
+            
             self.accessToken = session.accessToken
             self.appRemote?.connectionParameters.accessToken = session.accessToken
             // Don't need to reconnect here as the token was just renewed
@@ -354,7 +323,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     
     // MARK: - SPTAppRemoteDelegate
     
-    func appRemoteDidEstablishConnection(_ appRemote: SPTAppRemote) {
+    nonisolated func appRemoteDidEstablishConnection(_ appRemote: SPTAppRemote) {
         Task { @MainActor in
             print("DEBUG: Connected to Spotify")
             connectionTimer?.invalidate()
@@ -367,13 +336,15 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             appRemote.playerAPI?.subscribe(toPlayerState: { [weak self] success, error in
                 if let error = error {
                     print("DEBUG: Failed to subscribe to player state:", error)
-                    self?.error = SpotifyError.playbackError(error.localizedDescription)
+                    Task { @MainActor in
+                        self?.error = SpotifyError.playbackError(error.localizedDescription)
+                    }
                 }
             })
         }
     }
     
-    func appRemote(_ appRemote: SPTAppRemote, didFailConnectionAttemptWithError error: Error?) {
+    nonisolated func appRemote(_ appRemote: SPTAppRemote, didFailConnectionAttemptWithError error: Error?) {
         Task { @MainActor in
             print("DEBUG: Failed to connect to Spotify:", error?.localizedDescription ?? "unknown error")
             
@@ -393,7 +364,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
     }
     
-    func appRemote(_ appRemote: SPTAppRemote, didDisconnectWithError error: Error?) {
+    nonisolated func appRemote(_ appRemote: SPTAppRemote, didDisconnectWithError error: Error?) {
         Task { @MainActor in
             print("DEBUG: Disconnected from Spotify:", error?.localizedDescription ?? "no error")
             self.isConnected = false
@@ -408,8 +379,10 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     
     // MARK: - SPTAppRemotePlayerStateDelegate
     
-    func playerStateDidChange(_ playerState: SPTAppRemotePlayerState) {
-        updatePlayerState(playerState)
+    nonisolated func playerStateDidChange(_ playerState: SPTAppRemotePlayerState) {
+        Task { @MainActor in
+            await updatePlayerState(playerState)
+        }
     }
     
     private func updatePlayerState(_ playerState: SPTAppRemotePlayerState) {
@@ -421,24 +394,22 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             albumArtUrl: nil
         )
         
-        Task { @MainActor in
-            self.isPlaying = !playerState.isPaused
-            self.currentTrack = newTrack
-            
-            // Fetch album art if available
-            appRemote?.imageAPI?.fetchImage(forItem: playerState.track, with: CGSize(width: 64, height: 64)) { [weak self] (image, error) in
-                Task { @MainActor in
-                    if let error = error {
-                        print("Error fetching album art:", error)
-                    } else if let image = image as? UIImage {
-                        self?.currentTrack = Track(
-                            id: newTrack.id,
-                            name: newTrack.name,
-                            artist: newTrack.artist,
-                            previewUrl: newTrack.previewUrl,
-                            albumArtUrl: image.pngData()?.base64EncodedString()
-                        )
-                    }
+        self.isPlaying = !playerState.isPaused
+        self.currentTrack = newTrack
+        
+        // Fetch album art if available
+        appRemote?.imageAPI?.fetchImage(forItem: playerState.track, with: CGSize(width: 64, height: 64)) { [weak self] (image, error) in
+            Task { @MainActor in
+                if let error = error {
+                    print("Error fetching album art:", error)
+                } else if let image = image as? UIImage {
+                    self?.currentTrack = Track(
+                        id: newTrack.id,
+                        name: newTrack.name,
+                        artist: newTrack.artist,
+                        previewUrl: newTrack.previewUrl,
+                        albumArtUrl: image.pngData()?.base64EncodedString()
+                    )
                 }
             }
         }
