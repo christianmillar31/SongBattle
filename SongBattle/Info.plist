@@ -23,7 +23,7 @@
     <array>
         <dict>
             <key>CFBundleURLName</key>
-            <string>com.songbattle.app</string>
+            <string>com.example.SongBattle</string>
             <key>CFBundleURLSchemes</key>
             <array>
                 <string>songbattle</string>

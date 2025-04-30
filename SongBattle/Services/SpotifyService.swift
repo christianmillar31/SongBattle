@@ -2,6 +2,7 @@ import Foundation
 import SpotifyiOS
 import Combine
 import SwiftUI
+import UIKit
 
 extension Notification.Name {
     static let spotifyAuthCallback = Notification.Name("spotifyAuthCallback")
