@@ -2,56 +2,49 @@ import SwiftUI
 
 struct ScoreSheetView: View {
     @EnvironmentObject var gameService: GameService
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.presentationMode) var presentationMode
+    
+    // Create two arrays that match the number of teams
     @State private var titleToggles: [Bool]
     @State private var artistToggles: [Bool]
     
     init() {
         // Initialize the toggle arrays with the correct count
-        // We'll update these in onAppear if needed
-        _titleToggles = State(initialValue: [])
-        _artistToggles = State(initialValue: [])
+        _titleToggles = State(initialValue: Array(repeating: false, count: 2))
+        _artistToggles = State(initialValue: Array(repeating: false, count: 2))
     }
     
     var body: some View {
         NavigationView {
             Form {
-                ForEach(Array(gameService.teams.enumerated()), id: \.element.id) { idx, team in
-                    Section(header: Text(team.name)) {
-                        Toggle("Got Title", isOn: binding(for: $titleToggles, at: idx))
-                        Toggle("Got Artist", isOn: binding(for: $artistToggles, at: idx))
-                    }
-                }
-                
-                Button("Next Song") {
-                    // Submit scores for all teams
-                    for (index, team) in gameService.teams.enumerated() {
-                        let gotTitle = index < titleToggles.count ? titleToggles[index] : false
-                        let gotArtist = index < artistToggles.count ? artistToggles[index] : false
-                        
-                        if gotTitle {
-                            team.incrementScore()
-                        }
-                        if gotArtist {
-                            team.incrementScore()
+                if gameService.teams.count >= 2 {
+                    ForEach(Array(gameService.teams.enumerated()), id: \.element.id) { idx, team in
+                        Section(header: Text(team.name)) {
+                            Toggle("Got Title", isOn: binding(for: $titleToggles, at: idx))
+                            Toggle("Got Artist", isOn: binding(for: $artistToggles, at: idx))
                         }
                     }
                     
-                    // Start new round and play a new song
-                    gameService.startNewRound()
-                    dismiss()
+                    Button("Next Song") {
+                        // Award points safely using the toggle arrays
+                        gameService.submitScores(
+                            team1Title: titleToggles[0],
+                            team1Artist: artistToggles[0],
+                            team2Title: titleToggles[1],
+                            team2Artist: artistToggles[1]
+                        )
+                        gameService.startNewRound()
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                } else {
+                    Text("At least 2 teams are required to play")
+                        .foregroundColor(.secondary)
                 }
-                .disabled(gameService.teams.count < 2)
             }
             .navigationTitle("Submit Scores")
             .navigationBarItems(trailing: Button("Cancel") {
-                dismiss()
+                presentationMode.wrappedValue.dismiss()
             })
-            .onAppear {
-                // Initialize toggle arrays with the correct team count
-                titleToggles = Array(repeating: false, count: gameService.teams.count)
-                artistToggles = Array(repeating: false, count: gameService.teams.count)
-            }
         }
     }
     
@@ -72,5 +65,5 @@ struct ScoreSheetView: View {
 
 #Preview {
     ScoreSheetView()
-        .environmentObject(GameService(spotifyService: SpotifyService()))
+        .environmentObject(GameService())
 } 
