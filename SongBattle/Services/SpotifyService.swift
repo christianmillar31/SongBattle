@@ -64,6 +64,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     private var appRemote: SPTAppRemote?
     private var sessionManager: SPTSessionManager?
     private var accessToken: String?
+    private var configuration: SPTConfiguration?
     private var playerAPI: SPTAppRemotePlayerAPI? {
         return appRemote?.playerAPI
     }
@@ -95,10 +96,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
-        let configuration = SPTConfiguration(
+        configuration = SPTConfiguration(
             clientID: Configuration.spotifyClientId,
             redirectURL: redirectURL
         )
+        
+        guard let configuration = configuration else { return }
         
         appRemote = SPTAppRemote(configuration: configuration, logLevel: .debug)
         appRemote?.delegate = self
@@ -138,7 +141,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             appRemote?.connect()
         } else {
             print("DEBUG: No access token, initiating new session")
-            print("DEBUG: RedirectURL = \(configuration.redirectURL.absoluteString)")
+            print("DEBUG: RedirectURL = \(configuration?.redirectURL.absoluteString ?? "nil")")
             sessionManager?.initiateSession(with: scope, options: .default, campaign: "SongBattleLogin")
         }
     }
