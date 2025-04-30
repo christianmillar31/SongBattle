@@ -138,7 +138,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             appRemote?.connect()
         } else {
             print("DEBUG: No access token, initiating new session")
-            sessionManager?.initiateSession(with: scope, options: .default)
+            sessionManager?.initiateSession(with: scope, options: .default, campaign: "SongBattleLogin")
         }
     }
     

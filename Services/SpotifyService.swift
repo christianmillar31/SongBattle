@@ -39,6 +39,10 @@ func connect() {
         appRemote?.connect()
     } else {
         print("DEBUG: No access token, initiating new session")
-        sessionManager?.initiateSession(with: scope)
+        sessionManager?.initiateSession(
+            with: scope,
+            options: .default,
+            campaign: "SongBattleLogin"
+        )
     }
 } 

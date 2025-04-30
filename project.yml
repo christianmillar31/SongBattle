@@ -1,0 +1,20 @@
+name: SongBattle
+options:
+  bundleIdPrefix: com.songbattle
+  deploymentTarget:
+    iOS: 14.0
+targets:
+  SongBattle:
+    type: application
+    platform: iOS
+    sources:
+      - SongBattle
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.songbattle.app
+        SWIFT_OBJC_BRIDGING_HEADER: SongBattle/SongBattle-Bridging-Header.h
+        FRAMEWORK_SEARCH_PATHS: $(PROJECT_DIR)
+    dependencies:
+      - framework: SpotifyiOS.xcframework
+        embed: true
+        sign: true 
