@@ -64,6 +64,8 @@ struct ScoreSheetView: View {
 }
 
 #Preview {
-    ScoreSheetView()
-        .environmentObject(GameService())
+    let spotifyService = SpotifyService()
+    let gameService = GameService(spotifyService: spotifyService)
+    return ScoreSheetView()
+        .environmentObject(gameService)
 } 

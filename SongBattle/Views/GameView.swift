@@ -82,6 +82,7 @@ struct GameView: View {
         }
         .sheet(isPresented: $showingScoreSheet) {
             ScoreSheetView()
+                .environmentObject(gameService)
         }
     }
     
@@ -134,60 +135,19 @@ struct SongDisplayView: View {
                 .font(.title2)
             
             if isPlaying {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle())
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle())
             }
         }
         .padding()
     }
 }
 
-struct ScoreSheetView: View {
-    let gameService: GameService
-    @Environment(\.presentationMode) var presentationMode
-    @State private var team1Title = false
-    @State private var team1Artist = false
-    @State private var team2Title = false
-    @State private var team2Artist = false
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                Section(header: Text(gameService.teams[0].name)) {
-                    Toggle("Got Title", isOn: $team1Title)
-                    Toggle("Got Artist", isOn: $team1Artist)
-                }
-                
-                Section(header: Text(gameService.teams[1].name)) {
-                    Toggle("Got Title", isOn: $team2Title)
-                    Toggle("Got Artist", isOn: $team2Artist)
-                }
-                
-                Button(action: {
-                    gameService.submitScores(
-                        team1Title: team1Title,
-                        team1Artist: team1Artist,
-                        team2Title: team2Title,
-                        team2Artist: team2Artist
-                    )
-                    gameService.startNewRound()
-                    presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text("Next Song")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .navigationTitle("Submit Scores")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
-        }
-    }
-}
-
 struct GameView_Previews: PreviewProvider {
     static var previews: some View {
-        GameView()
-            .environmentObject(GameService(spotifyService: SpotifyService()))
+        let spotifyService = SpotifyService()
+        let gameService = GameService(spotifyService: spotifyService)
+        return GameView()
+            .environmentObject(gameService)
     }
 } 
