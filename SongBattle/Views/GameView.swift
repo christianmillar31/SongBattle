@@ -14,7 +14,6 @@ struct GameView: View {
                         .onAppear {
                             // Defer loading to allow UI to render
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                gameService.spotifyService.connect()
                                 isLoading = false
                             }
                         }
