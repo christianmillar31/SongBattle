@@ -18,6 +18,7 @@
 		1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */; };
 		7A6AFF872DBB1862001F5D91 /* SpotifyiOS.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; };
 		7A6AFF882DBB1862001F5D91 /* SpotifyiOS.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D3 /* Configuration.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -47,6 +48,7 @@
 		1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2FNC3A47ZF:Spotify"; lastKnownFileType = wrapper.xcframework; path = SpotifyiOS.xcframework; sourceTree = "<group>"; };
 		7A6AFF8C2DBB1D25001F5D91 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7A9B9E362DC1CBED004491D3 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +66,7 @@
 		1A1A1A1A1A1A1A1A1A1A1A2A = {
 			isa = PBXGroup;
 			children = (
+				7A9B9E362DC1CBED004491D3 /* Configuration.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A2B /* SongBattle */,
 				7A6AFF842DBB1814001F5D91 /* Frameworks */,
 				1A1A1A1A1A1A1A1A1A1A1A2C /* Products */,
@@ -202,6 +205,7 @@
 				1A1A1A1A1A1A1A1A1A1A1A20 /* TeamsView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A22 /* SettingsView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A24 /* SpotifyService.swift in Sources */,
+				7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A26 /* GameService.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */,
@@ -340,6 +344,10 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = F7MGX6469C;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SongBattle/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -358,10 +366,6 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/SongBattle/SongBattle-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
-				);
 			};
 			name = Debug;
 		};
@@ -375,6 +379,10 @@
 				DEVELOPMENT_ASSET_PATHS = "";
 				DEVELOPMENT_TEAM = F7MGX6469C;
 				ENABLE_PREVIEWS = YES;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = SongBattle/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -393,10 +401,6 @@
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/SongBattle/SongBattle-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)",
-				);
 			};
 			name = Release;
 		};

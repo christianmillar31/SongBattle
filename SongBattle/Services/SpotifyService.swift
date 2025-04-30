@@ -3,16 +3,6 @@ import SpotifyiOS
 import Combine
 import SwiftUI
 
-// Move Configuration to local file since it's not being found from the package
-enum Configuration {
-    // Using a computed property to avoid storing sensitive data directly in the source
-    static var spotifyClientId: String {
-        // Replace with your actual client ID
-        return "1a71b9e3c3c44b41b6f6ea0c616b3083"
-    }
-    static let spotifyRedirectURI = "songbattle://spotify-callback"
-}
-
 extension Notification.Name {
     static let spotifyAuthCallback = Notification.Name("spotifyAuthCallback")
 }
@@ -23,6 +13,7 @@ enum SpotifyError: LocalizedError, Equatable {
     case playbackError(String)
     case authenticationError(String)
     case connectionTimeout
+    case invalidRedirectURI
     
     var errorDescription: String? {
         switch self {
@@ -36,6 +27,8 @@ enum SpotifyError: LocalizedError, Equatable {
             return "Authentication error: \(reason)"
         case .connectionTimeout:
             return "Connection attempt timed out"
+        case .invalidRedirectURI:
+            return "Invalid redirect URI. Please check your Spotify Developer Dashboard settings."
         }
     }
     
@@ -50,6 +43,8 @@ enum SpotifyError: LocalizedError, Equatable {
         case (.authenticationError(let lhsReason), .authenticationError(let rhsReason)):
             return lhsReason == rhsReason
         case (.connectionTimeout, .connectionTimeout):
+            return true
+        case (.invalidRedirectURI, .invalidRedirectURI):
             return true
         default:
             return false
@@ -94,7 +89,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
         
         print("DEBUG: Setting up Spotify")
-        let redirectURL = URL(string: Configuration.spotifyRedirectURI)!
+        guard let redirectURL = URL(string: Configuration.spotifyRedirectURI) else {
+            print("ERROR: Invalid redirect URI: \(Configuration.spotifyRedirectURI)")
+            error = SpotifyError.invalidRedirectURI
+            return
+        }
+        
         let configuration = SPTConfiguration(
             clientID: Configuration.spotifyClientId,
             redirectURL: redirectURL
