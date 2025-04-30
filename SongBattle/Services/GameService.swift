@@ -70,15 +70,34 @@ class GameService: ObservableObject {
     }
     
     func startNewRound() {
-        // Play a random song
-        spotifyService.playRandomSong()
-        
-        // Create new round
+        // Create new round first
         currentRound = Round(
             id: UUID(),
-            song: nil, // Will be updated when track starts playing
+            song: nil,
             startTime: Date()
         )
+        
+        // If we're not connected, wait for connection before playing
+        guard spotifyService.isConnected else {
+            print("DEBUG: Not connected to Spotify, waiting for connection...")
+            // Subscribe for the next "became true" and then re-invoke
+            spotifyService.$isConnected
+                .filter { $0 }
+                .prefix(1)
+                .sink { [weak self] _ in
+                    print("DEBUG: Spotify connected, starting round...")
+                    self?.startNewRound()
+                }
+                .store(in: &cancellables)
+            
+            // Kick off a connect (this will be back-off-safe)
+            spotifyService.connect()
+            return
+        }
+        
+        // Only play random song when we're actually connected
+        print("DEBUG: Connected to Spotify, playing random song...")
+        spotifyService.playRandomSong()
     }
     
     func submitScores(team1Title: Bool, team1Artist: Bool, team2Title: Bool, team2Artist: Bool) {

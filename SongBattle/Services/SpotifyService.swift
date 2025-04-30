@@ -361,7 +361,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             playedSongs.removeAll()
         }
         
-        print("DEBUG: Fetching recommended playlists...")
+        print("DEBUG: Fetching recommended content...")
         appRemote.contentAPI?.fetchRecommendedContentItems(forType: "default", flattenContainers: true) { [weak self] (result, error) in
             guard let self = self else { return }
             
@@ -388,80 +388,34 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 return
             }
             
-            // Filter for container items (playlists) only
-            let playlists = items.filter { item in
-                let isContainer = item.isContainer
-                if !isContainer {
-                    print("DEBUG: Skipping non-container item: \(item.title ?? "Unknown")")
+            // Get all track URIs directly from flattened content
+            let trackURIs = items.compactMap { item -> String? in
+                let uri = item.uri
+                print("DEBUG: Checking item - Title: \(item.title ?? "Unknown"), URI: \(uri)")
+                
+                // Only include track URIs that haven't been played
+                if uri.hasPrefix("spotify:track:") && !self.playedSongs.contains(uri) {
+                    print("DEBUG: Found valid unplayed track: \(item.title ?? "Unknown") - \(uri)")
+                    return uri
                 }
-                return isContainer
+                return nil
             }
             
-            print("DEBUG: Found \(playlists.count) playlists")
+            print("DEBUG: Found \(trackURIs.count) unplayed tracks")
             
-            // Get a random playlist from the filtered items
-            guard let randomPlaylist = playlists.randomElement() else {
-                print("DEBUG: No playlists available")
+            if trackURIs.isEmpty {
+                print("DEBUG: No unplayed tracks found, resetting played tracks and trying again")
+                self.playedSongs.removeAll()
+                self.playRandomSong()
                 return
             }
             
-            print("DEBUG: Selected playlist: \(randomPlaylist.title ?? "Unknown")")
-            
-            // Fetch tracks from the selected playlist
-            appRemote.contentAPI?.fetchChildren(of: randomPlaylist) { [weak self] (result, error) in
-                guard let self = self else { return }
-                
-                if let error = error {
-                    print("DEBUG: Error fetching playlist tracks: \(error.localizedDescription)")
-                    self.handleConnectionError(error)
-                    return
-                }
-                
-                guard let tracks = result as? [SPTAppRemoteContentItem] else {
-                    print("DEBUG: No tracks found in playlist or invalid type")
-                    return
-                }
-                
-                print("DEBUG: Found \(tracks.count) tracks in playlist")
-                
-                // Filter out non-track items and already played tracks
-                let unplayedTracks = tracks.compactMap { track -> String? in
-                    let uri = track.uri
-                    
-                    // Debug each track's URI
-                    print("DEBUG: Checking track - Title: \(track.title ?? "Unknown"), URI: \(uri)")
-                    
-                    // Check if it's a track
-                    if !uri.hasPrefix("spotify:track:") {
-                        print("DEBUG: Skipping non-track URI: \(uri)")
-                        return nil
-                    }
-                    
-                    // Check if it's already played
-                    if self.playedSongs.contains(uri) {
-                        print("DEBUG: Skipping already played track: \(uri)")
-                        return nil
-                    }
-                    
-                    print("DEBUG: Found valid unplayed track: \(track.title ?? "Unknown") - \(uri)")
-                    return uri
-                }
-                
-                print("DEBUG: Found \(unplayedTracks.count) unplayed tracks")
-                
-                if unplayedTracks.isEmpty {
-                    print("DEBUG: No unplayed tracks found in this playlist, trying another playlist")
-                    self.playRandomSong() // Try again with a different playlist
-                    return
-                }
-                
-                // Select a random track from the unplayed tracks
-                if let randomTrack = unplayedTracks.randomElement() {
-                    print("DEBUG: Selected random track for playback: \(randomTrack)")
-                    self.playedSongs.insert(randomTrack)
-                    print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
-                    appRemote.playerAPI?.play(randomTrack)
-                }
+            // Select a random track from the unplayed tracks
+            if let randomTrack = trackURIs.randomElement() {
+                print("DEBUG: Selected random track for playback: \(randomTrack)")
+                self.playedSongs.insert(randomTrack)
+                print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
+                appRemote.playerAPI?.play(randomTrack)
             }
         }
     }
