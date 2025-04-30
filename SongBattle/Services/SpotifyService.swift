@@ -105,7 +105,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         // Instantiate the one-and-only session manager immediately after configuration
         sessionManager = SPTSessionManager(configuration: configuration, delegate: self)
-        print("DEBUG: Created sessionManager with redirect → \(sessionManager!.configuration.redirectURL.absoluteString)")
+        print("DEBUG: Created sessionManager with redirect → \(redirectURL.absoluteString)")
         
         // Initialize app remote
         if appRemote == nil {
@@ -378,7 +378,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     
     nonisolated func playerStateDidChange(_ playerState: SPTAppRemotePlayerState) {
         Task { @MainActor in
-            await updatePlayerState(playerState)
+            updatePlayerState(playerState)
         }
     }
     
