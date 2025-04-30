@@ -237,30 +237,45 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // MARK: - URL Handling
     
     func handleURL(_ url: URL) -> Bool {
-        guard let appRemote = appRemote else { return false }
+        print("DEBUG: Handling URL: \(url)")
+        guard let appRemote = appRemote else {
+            print("ERROR: appRemote is nil when handling URL")
+            return false
+        }
         
         let parameters = appRemote.authorizationParameters(from: url)
+        print("DEBUG: Auth parameters: \(String(describing: parameters))")
         var result = false
         
         if let parameters = parameters as? [String: Any],
            let accessToken = parameters[SPTAppRemoteAccessTokenKey] as? String {
             result = true
+            print("DEBUG: Successfully got access token")
             Task { @MainActor in
                 self.accessToken = accessToken
                 self.appRemote?.connectionParameters.accessToken = accessToken
                 self.appRemote?.connect()
             }
-        } else if let parameters = parameters as? [String: Any],
-                  let errorDescription = parameters[SPTAppRemoteErrorDescriptionKey] as? String {
-            Task { @MainActor in
-                self.error = NSError(
-                    domain: "Spotify",
-                    code: -1,
-                    userInfo: [NSLocalizedDescriptionKey: errorDescription]
-                )
-                self.authenticationError = self.error
-                self.isConnecting = false
+        } else if let parameters = parameters as? [String: Any] {
+            // Log all parameters to help debug
+            print("DEBUG: Received parameters: \(parameters)")
+            
+            if let errorDescription = parameters[SPTAppRemoteErrorDescriptionKey] as? String {
+                print("ERROR: Spotify auth failed: \(errorDescription)")
+                Task { @MainActor in
+                    self.error = NSError(
+                        domain: "Spotify",
+                        code: -1,
+                        userInfo: [NSLocalizedDescriptionKey: errorDescription]
+                    )
+                    self.authenticationError = self.error
+                    self.isConnecting = false
+                }
+            } else {
+                print("ERROR: No error description in parameters")
             }
+        } else {
+            print("ERROR: Could not parse authorization parameters")
         }
         
         return result
@@ -269,12 +284,19 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // MARK: - SPTSessionManagerDelegate
     
     func sessionManager(manager: SPTSessionManager, didInitiate session: SPTSession) {
-        print("Session initiated")
+        print("DEBUG: Session initiated successfully")
+        print("DEBUG: Access token: \(session.accessToken)")
+        print("DEBUG: Expiration date: \(session.expirationDate)")
     }
     
     func sessionManager(manager: SPTSessionManager, didFailWith error: Error) {
         Task { @MainActor in
-            print("Failed to initialize session:", error)
+            print("ERROR: Failed to initialize session: \(error)")
+            print("ERROR: Localized description: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("ERROR: Domain: \(nsError.domain), Code: \(nsError.code)")
+                print("ERROR: User info: \(nsError.userInfo)")
+            }
             self.error = error
             self.authenticationError = error
             self.isConnecting = false
