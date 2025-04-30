@@ -84,11 +84,6 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     }
     
     private func setupSpotifyIfNeeded() {
-        guard appRemote == nil else {
-            print("DEBUG: Spotify already set up")
-            return
-        }
-        
         print("DEBUG: Setting up Spotify")
         guard let redirectURL = URL(string: Configuration.spotifyRedirectURI) else {
             print("ERROR: Invalid redirect URI: \(Configuration.spotifyRedirectURI)")
@@ -96,17 +91,30 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
+        // Create configuration
         configuration = SPTConfiguration(
             clientID: Configuration.spotifyClientId,
             redirectURL: redirectURL
         )
         
-        guard let configuration = configuration else { return }
+        guard let configuration = configuration else {
+            print("ERROR: Failed to create configuration")
+            return
+        }
         
-        appRemote = SPTAppRemote(configuration: configuration, logLevel: .debug)
-        appRemote?.delegate = self
+        // Initialize session manager first
+        if sessionManager == nil {
+            print("DEBUG: Creating new session manager")
+            sessionManager = SPTSessionManager(configuration: configuration, delegate: self)
+        }
         
-        sessionManager = SPTSessionManager(configuration: configuration, delegate: self)
+        // Initialize app remote
+        if appRemote == nil {
+            print("DEBUG: Creating new app remote")
+            appRemote = SPTAppRemote(configuration: configuration, logLevel: .debug)
+            appRemote?.delegate = self
+        }
+        
         print("DEBUG: Spotify setup complete")
     }
     
@@ -140,11 +148,11 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             appRemote?.connectionParameters.accessToken = accessToken
             appRemote?.connect()
         } else {
-            print("DEBUG: No access token, initiating new session")
+            print("DEBUG: No access token, initiating new session with PKCE")
             print("DEBUG: RedirectURL = \(configuration?.redirectURL.absoluteString ?? "nil")")
             sessionManager?.initiateSession(
                 with: scope,
-                options: .clientOnly,
+                options: .clientOnly,  // Use PKCE flow
                 campaign: nil
             )
         }
@@ -161,8 +169,15 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         print("DEBUG: Cleaning up Spotify resources")
         connectionTimer?.invalidate()
         connectionTimer = nil
-        appRemote = nil
-        sessionManager = nil
+        
+        // Only clean up if we're not in the middle of connecting
+        if !isConnecting {
+            print("DEBUG: Fully cleaning up Spotify instances")
+            appRemote = nil
+            sessionManager = nil
+        } else {
+            print("DEBUG: Keeping Spotify instances for auth callback")
+        }
     }
     
     func disconnect() {
@@ -176,11 +191,16 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         isConnected = false
         accessToken = nil
         authenticationError = nil
-        isConnecting = false
         
-        // Clean up instances
-        cleanup()
-        print("DEBUG: Spotify cleaned up")
+        // Only reset connecting state if we're not in the middle of auth
+        if !isConnecting {
+            isConnecting = false
+            // Clean up instances
+            cleanup()
+            print("DEBUG: Spotify cleaned up")
+        } else {
+            print("DEBUG: Keeping connection state for auth callback")
+        }
     }
     
     func play(_ trackUri: String) {
@@ -242,6 +262,19 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     
     func handleURL(_ url: URL) -> Bool {
         print("DEBUG: Handling URL: \(url)")
+        
+        // Let the session manager handle the URL first
+        if let sessionManager = sessionManager {
+            let handled = sessionManager.application(
+                UIApplication.shared,
+                open: url,
+                options: [:]
+            )
+            print("DEBUG: URL handled by session manager: \(handled)")
+            return handled
+        }
+        
+        // Fallback to app remote handling if session manager didn't handle it
         guard let appRemote = appRemote else {
             print("ERROR: appRemote is nil when handling URL")
             return false
@@ -249,21 +282,18 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         let parameters = appRemote.authorizationParameters(from: url)
         print("DEBUG: Auth parameters: \(String(describing: parameters))")
-        var result = false
         
         if let parameters = parameters as? [String: Any],
            let accessToken = parameters[SPTAppRemoteAccessTokenKey] as? String {
-            result = true
             print("DEBUG: Successfully got access token")
             Task { @MainActor in
                 self.accessToken = accessToken
                 self.appRemote?.connectionParameters.accessToken = accessToken
                 self.appRemote?.connect()
             }
+            return true
         } else if let parameters = parameters as? [String: Any] {
-            // Log all parameters to help debug
             print("DEBUG: Received parameters: \(parameters)")
-            
             if let errorDescription = parameters[SPTAppRemoteErrorDescriptionKey] as? String {
                 print("ERROR: Spotify auth failed: \(errorDescription)")
                 Task { @MainActor in
@@ -275,14 +305,10 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                     self.authenticationError = self.error
                     self.isConnecting = false
                 }
-            } else {
-                print("ERROR: No error description in parameters")
             }
-        } else {
-            print("ERROR: Could not parse authorization parameters")
         }
         
-        return result
+        return false
     }
     
     // MARK: - SPTSessionManagerDelegate
@@ -291,6 +317,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         print("DEBUG: Session initiated successfully")
         print("DEBUG: Access token: \(session.accessToken)")
         print("DEBUG: Expiration date: \(session.expirationDate)")
+        
+        Task { @MainActor in
+            self.accessToken = session.accessToken
+            self.appRemote?.connectionParameters.accessToken = session.accessToken
+            self.appRemote?.connect()
+        }
     }
     
     func sessionManager(manager: SPTSessionManager, didFailWith error: Error) {
@@ -304,6 +336,18 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             self.error = error
             self.authenticationError = error
             self.isConnecting = false
+        }
+    }
+    
+    func sessionManager(manager: SPTSessionManager, didRenew session: SPTSession) {
+        print("DEBUG: Session renewed successfully")
+        print("DEBUG: New access token: \(session.accessToken)")
+        print("DEBUG: New expiration date: \(session.expirationDate)")
+        
+        Task { @MainActor in
+            self.accessToken = session.accessToken
+            self.appRemote?.connectionParameters.accessToken = session.accessToken
+            // Don't need to reconnect here as the token was just renewed
         }
     }
     

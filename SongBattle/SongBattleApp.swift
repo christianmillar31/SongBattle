@@ -24,8 +24,12 @@ struct SongBattleApp: App {
                         // Don't automatically connect - let user initiate connection
                         break
                     case .background:
-                        // Clean up Spotify resources when going to background
-                        spotifyService.disconnect()
+                        // Only disconnect if we're not in the middle of auth
+                        if !spotifyService.isConnecting {
+                            spotifyService.disconnect()
+                        } else {
+                            print("DEBUG: Skipping disconnect during auth")
+                        }
                     case .inactive:
                         // App is transitioning between states, no action needed
                         break
