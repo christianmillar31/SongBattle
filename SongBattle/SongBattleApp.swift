@@ -15,7 +15,10 @@ struct SongBattleApp: App {
                 }
                 .onOpenURL { url in
                     print("DEBUG: Received URL: \(url)")
-                    spotifyService.handleURL(url)
+                    let handled = spotifyService.handleURL(url)
+                    if !handled {
+                        print("DEBUG: URL was not handled by Spotify service")
+                    }
                 }
                 .onChange(of: phase) { newPhase in
                     print("DEBUG: Scene phase changed to: \(newPhase)")

@@ -103,16 +103,17 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         print("DEBUG: ▶️ clientID → \(configuration.clientID)")
         print("DEBUG: ▶️ redirectURL → \(configuration.redirectURL.absoluteString)")
         
+        // Clean up any existing instances
+        sessionManager = nil
+        appRemote = nil
+        
         // Instantiate the one-and-only session manager immediately after configuration
         sessionManager = SPTSessionManager(configuration: configuration, delegate: self)
         print("DEBUG: Created sessionManager with redirect → \(redirectURL.absoluteString)")
         
         // Initialize app remote
-        if appRemote == nil {
-            print("DEBUG: Creating new app remote")
-            appRemote = SPTAppRemote(configuration: configuration, logLevel: .debug)
-            appRemote?.delegate = self
-        }
+        appRemote = SPTAppRemote(configuration: configuration, logLevel: .debug)
+        appRemote?.delegate = self
         
         print("DEBUG: Spotify setup complete")
     }
@@ -152,7 +153,15 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 print("ERROR: Session manager not initialized")
                 return
             }
-            print("DEBUG: Using session manager with redirect URL → \(sessionManager.configuration.redirectURL.absoluteString)")
+            
+            // Get the redirect URL from our stored configuration
+            guard let redirectURL = configuration?.redirectURL else {
+                print("ERROR: Configuration not set")
+                return
+            }
+            
+            print("DEBUG: Using session manager with redirect URL → \(redirectURL.absoluteString)")
+            
             // Use PKCE flow with clientOnly option
             sessionManager.initiateSession(
                 with: scope,
@@ -265,7 +274,6 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // MARK: - URL Handling
     
     func handleURL(_ url: URL) -> Bool {
-        print("DEBUG: Received URL: \(url.absoluteString)")
         print("DEBUG: Handling URL: \(url.absoluteString)")
         
         guard let sessionManager = sessionManager else {
@@ -275,6 +283,25 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         let handled = sessionManager.application(UIApplication.shared, open: url, options: [:])
         print("DEBUG: ▶️ onOpenURL handled by sessionManager: \(handled)")
+        
+        if !handled {
+            // If session manager didn't handle it, check if it's an error response
+            if url.absoluteString.contains("error=") {
+                print("DEBUG: URL contains error, parsing error details")
+                if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+                   let error = components.queryItems?.first(where: { $0.name == "error" })?.value,
+                   let description = components.queryItems?.first(where: { $0.name == "error_description" })?.value {
+                    print("DEBUG: Error: \(error)")
+                    print("DEBUG: Description: \(description)")
+                    Task { @MainActor in
+                        self.error = SpotifyError.authenticationError(description)
+                        self.authenticationError = SpotifyError.authenticationError(description)
+                        self.isConnecting = false
+                    }
+                }
+            }
+        }
+        
         return handled
     }
     

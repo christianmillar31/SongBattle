@@ -5,7 +5,7 @@ enum Configuration {
     
     static var spotifyClientId: String {
         // Replace with your actual client ID from Spotify Developer Dashboard
-        return "1a71b9e3c3c44b41b6f6ea0c616b3083"
+        return "c4788e07ffa548f78f8101af9c8aa0c5"
     }
     
     static let spotifyRedirectURI = "songbattle://spotify-callback"

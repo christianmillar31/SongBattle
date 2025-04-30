@@ -14,20 +14,17 @@ class TeamsViewModel: ObservableObject {
     func addTeam(name: String) {
         let newTeam = Team(id: UUID().uuidString, name: name)
         teams.append(newTeam)
-        Task {
-            await updateGameServiceTeams()
-        }
+        updateGameServiceTeams()
     }
     
     func deleteTeam(at offsets: IndexSet) {
         teams.remove(atOffsets: offsets)
-        Task {
-            await updateGameServiceTeams()
-        }
+        updateGameServiceTeams()
     }
     
     private func updateGameServiceTeams() {
-        gameService.teams = teams // This is safe now because both are on MainActor
+        // Since we're already on MainActor, no need for async/await
+        gameService.teams = teams
     }
 }
 
