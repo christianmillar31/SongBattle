@@ -2,8 +2,7 @@ import SwiftUI
 
 struct GameView: View {
     @EnvironmentObject var gameService: GameService
-    @State private var showingAnswerSheet = false
-    @State private var selectedTeam: Team?
+    @State private var showingScoreSheet = false
     @State private var isLoading = true
     
     var body: some View {
@@ -12,7 +11,6 @@ struct GameView: View {
                 if isLoading {
                     ProgressView("Loading...")
                         .onAppear {
-                            // Defer loading to allow UI to render
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 isLoading = false
                             }
@@ -59,20 +57,18 @@ struct GameView: View {
         VStack {
             if let round = gameService.currentRound {
                 VStack(spacing: 20) {
-                    Text("Current Team: \(round.team.name)")
-                        .font(.headline)
-                    
                     if let song = round.song {
-                        SongDisplayView(song: song, isPlaying: false)
+                        SongDisplayView(song: song, isPlaying: gameService.spotifyService.isPlaying)
+                    } else {
+                        ProgressView("Loading song...")
                     }
                     
                     Spacer()
                     
                     Button(action: {
-                        selectedTeam = round.team
-                        showingAnswerSheet = true
+                        showingScoreSheet = true
                     }) {
-                        Text("Submit Answer")
+                        Text("Submit Scores")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding()
@@ -84,10 +80,8 @@ struct GameView: View {
                 }
             }
         }
-        .sheet(isPresented: $showingAnswerSheet) {
-            if let team = selectedTeam {
-                AnswerSheetView(team: team, gameService: gameService)
-            }
+        .sheet(isPresented: $showingScoreSheet) {
+            ScoreSheetView(gameService: gameService)
         }
     }
     
@@ -140,38 +134,50 @@ struct SongDisplayView: View {
                 .font(.title2)
             
             if isPlaying {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle())
+            ProgressView()
+                .progressViewStyle(CircularProgressViewStyle())
             }
         }
         .padding()
     }
 }
 
-struct AnswerSheetView: View {
-    let team: Team
+struct ScoreSheetView: View {
     let gameService: GameService
     @Environment(\.presentationMode) var presentationMode
-    @State private var title = ""
-    @State private var artist = ""
+    @State private var team1Title = false
+    @State private var team1Artist = false
+    @State private var team2Title = false
+    @State private var team2Artist = false
     
     var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Your Answer")) {
-                    TextField("Song Title", text: $title)
-                    TextField("Artist", text: $artist)
+                Section(header: Text(gameService.teams[0].name)) {
+                    Toggle("Got Title", isOn: $team1Title)
+                    Toggle("Got Artist", isOn: $team1Artist)
+                }
+                
+                Section(header: Text(gameService.teams[1].name)) {
+                    Toggle("Got Title", isOn: $team2Title)
+                    Toggle("Got Artist", isOn: $team2Artist)
                 }
                 
                 Button(action: {
-                    gameService.submitAnswer(team: team, title: title, artist: artist)
+                    gameService.submitScores(
+                        team1Title: team1Title,
+                        team1Artist: team1Artist,
+                        team2Title: team2Title,
+                        team2Artist: team2Artist
+                    )
+                    gameService.startNewRound()
                     presentationMode.wrappedValue.dismiss()
                 }) {
-                    Text("Submit")
+                    Text("Next Song")
                         .frame(maxWidth: .infinity)
                 }
             }
-            .navigationTitle("Submit Answer")
+            .navigationTitle("Submit Scores")
             .navigationBarItems(trailing: Button("Cancel") {
                 presentationMode.wrappedValue.dismiss()
             })

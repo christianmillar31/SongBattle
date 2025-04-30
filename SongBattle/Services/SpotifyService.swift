@@ -74,6 +74,9 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     private let maxConnectionRetries = 3
     private var connectionTimer: Timer?
     
+    // Track played songs to prevent repetition
+    private var playedSongs: Set<String> = []
+    
     override init() {
         super.init()
         print("DEBUG: SpotifyService initialized")
@@ -146,7 +149,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         if let accessToken = self.accessToken {
             print("DEBUG: Attempting to connect with existing access token")
             appRemote?.connectionParameters.accessToken = accessToken
-            appRemote?.connect()
+        appRemote?.connect()
         } else {
             print("DEBUG: No access token, initiating new session with PKCE")
             guard let sessionManager = sessionManager else {
@@ -199,8 +202,8 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         connectionTimer = nil
         
         if appRemote?.isConnected == true {
-            appRemote?.disconnect()
-        }
+        appRemote?.disconnect()
+    }
         isConnected = false
         accessToken = nil
         authenticationError = nil
@@ -216,58 +219,167 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
     }
     
-    func play(_ trackUri: String) {
-        guard appRemote?.isConnected == true else {
-            error = NSError(domain: "Spotify", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not connected to Spotify"])
+    // MARK: - Playback Control
+    
+    private func handleConnectionError(_ error: Error) {
+        print("DEBUG: Connection error: \(error.localizedDescription)")
+        
+        // Check if it's an end of stream error
+        if let appRemoteError = error as NSError?,
+           appRemoteError.domain == "com.spotify.app-remote.transport" &&
+           appRemoteError.code == -2001 {
+            print("DEBUG: End of stream detected, attempting to reconnect...")
+            // Attempt to reconnect after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.connect()
+            }
             return
         }
         
-        playerAPI?.play(trackUri, callback: { [weak self] _, error in
+        // For other errors, try to reconnect
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            self?.connect()
+        }
+    }
+    
+    func playRandomSong() {
+        guard let appRemote = appRemote, appRemote.isConnected else {
+            print("DEBUG: Not connected to Spotify")
+            connect()
+            return
+        }
+        
+        // If we've played all available tracks, reset the played tracks set
+        if playedSongs.count >= 100 {
+            print("DEBUG: Reset played tracks")
+            playedSongs.removeAll()
+        }
+        
+        print("DEBUG: Fetching recommended tracks...")
+        appRemote.contentAPI?.fetchRecommendedContentItems(forType: "default", flattenContainers: true) { [weak self] (result, error) in
+            guard let self = self else { return }
+            
+            if let error = error {
+                print("DEBUG: Error fetching recommended content: \(error.localizedDescription)")
+                self.handleConnectionError(error)
+                return
+            }
+            
+            guard let items = result as? [SPTAppRemoteContentItem] else {
+                print("DEBUG: No recommended items found or invalid type")
+                return
+            }
+            
+            print("DEBUG: Found \(items.count) total items")
+            
+            // Debug the types of items we're getting
+            if let firstItem = items.first {
+                print("DEBUG: Example item - Title: \(firstItem.title ?? "Unknown"), URI: \(firstItem.uri), Type: \(type(of: firstItem))")
+            }
+            
+            // Filter out podcasts and already played tracks
+            let unplayedTracks = items.compactMap { item -> String? in
+                let uri = item.uri
+                
+                // Debug each item's URI
+                print("DEBUG: Checking item - Title: \(item.title ?? "Unknown"), URI: \(uri)")
+                
+                // Check if it's a track
+                if !uri.hasPrefix("spotify:track:") {
+                    print("DEBUG: Skipping non-track URI: \(uri)")
+                    return nil
+                }
+                
+                // Check if it's already played
+                if self.playedSongs.contains(uri) {
+                    print("DEBUG: Skipping already played track: \(uri)")
+                    return nil
+                }
+                
+                print("DEBUG: Found valid unplayed track: \(item.title ?? "Unknown") - \(uri)")
+                return uri
+            }
+            
+            print("DEBUG: Found \(unplayedTracks.count) unplayed tracks")
+            
+            if unplayedTracks.isEmpty {
+                print("DEBUG: No unplayed tracks found, resetting played tracks")
+                self.playedSongs.removeAll()
+                print("DEBUG: Played tracks set cleared, now contains \(self.playedSongs.count) tracks")
+                self.playRandomSong() // Try again with reset tracks
+                return
+            }
+            
+            // Select a random track from the unplayed tracks
+            if let randomTrack = unplayedTracks.randomElement() {
+                print("DEBUG: Selected random track for playback: \(randomTrack)")
+                self.playedSongs.insert(randomTrack)
+                print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
+                appRemote.playerAPI?.play(randomTrack)
+            }
+        }
+    }
+    
+    func play(_ trackUri: String) {
+        guard appRemote?.isConnected == true else {
+            error = SpotifyError.connectionFailed("Not connected to Spotify")
+            return
+        }
+        
+        playerAPI?.play(trackUri) { [weak self] (_, error) in
             Task { @MainActor in
                 if let error = error {
-                    self?.error = error
+                    self?.error = SpotifyError.playbackError(error.localizedDescription)
                 }
             }
-        })
+        }
     }
     
     func pause() {
-        playerAPI?.pause({ [weak self] _, error in
+        guard appRemote?.isConnected == true else { return }
+        
+        playerAPI?.pause { [weak self] (_, error) in
             Task { @MainActor in
                 if let error = error {
-                    self?.error = error
+                    self?.error = SpotifyError.playbackError(error.localizedDescription)
                 }
             }
-        })
+        }
     }
     
     func resume() {
-        playerAPI?.resume({ [weak self] _, error in
+        guard appRemote?.isConnected == true else { return }
+        
+        playerAPI?.resume { [weak self] (_, error) in
             Task { @MainActor in
                 if let error = error {
-                    self?.error = error
+                    self?.error = SpotifyError.playbackError(error.localizedDescription)
                 }
             }
-        })
+        }
     }
     
     func skipNext() {
-        playerAPI?.skip(toNext: { [weak self] _, error in
+        guard appRemote?.isConnected == true else { return }
+        
+        playerAPI?.skip(toNext: { [weak self] (_, error) in
             Task { @MainActor in
                 if let error = error {
-                    self?.error = error
+                    self?.error = SpotifyError.playbackError(error.localizedDescription)
                 }
             }
         })
     }
     
     func skipPrevious() {
-        playerAPI?.skip(toPrevious: { [weak self] _, error in
+        guard appRemote?.isConnected == true else { return }
+        
+        playerAPI?.skip(toPrevious: { [weak self] (_, error) in
             Task { @MainActor in
                 if let error = error {
-                    self?.error = error
-                }
-            }
+                    self?.error = SpotifyError.playbackError(error.localizedDescription)
+    }
+}
         })
     }
     
@@ -356,7 +468,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             self.error = nil
             
             // Set up player state subscription
-            appRemote.playerAPI?.delegate = self
+        appRemote.playerAPI?.delegate = self
             appRemote.playerAPI?.subscribe(toPlayerState: { [weak self] success, error in
                 if let error = error {
                     print("DEBUG: Failed to subscribe to player state:", error)
@@ -378,7 +490,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 self.connect()
             } else {
                 self.isConnected = false
-                if let error = error {
+            if let error = error {
                     self.error = SpotifyError.connectionFailed(error.localizedDescription)
                     self.authenticationError = error
                 }

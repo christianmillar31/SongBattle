@@ -15,7 +15,7 @@ struct TeamsView: View {
             .navigationTitle("Teams")
             .toolbar {
                 Button(action: { showingAddTeam = true }) {
-                    Image(systemName: "plus")
+                Image(systemName: "plus")
                 }
             }
             .sheet(isPresented: $showingAddTeam) {
@@ -45,8 +45,8 @@ struct AddTeamView: View {
     var body: some View {
         NavigationView {
             Form {
-                TextField("Team Name", text: $teamName)
-            }
+                    TextField("Team Name", text: $teamName)
+                }
             .navigationTitle("Add Team")
             .navigationBarItems(
                 leading: Button("Cancel") {
