@@ -209,6 +209,7 @@
 				1A1A1A1A1A1A1A1A1A1A1A22 /* SettingsView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A24 /* SpotifyService.swift in Sources */,
 				7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */,
+				7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A26 /* GameService.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */,
