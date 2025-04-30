@@ -104,6 +104,7 @@
 				1A1A1A1A1A1A1A1A1A1A1A23 /* SettingsView.swift */,
 				7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */,
 			);
+			name = Views;
 			path = Views;
 			sourceTree = "<group>";
 		};
