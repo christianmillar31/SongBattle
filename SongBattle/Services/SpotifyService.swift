@@ -224,21 +224,30 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     private func handleConnectionError(_ error: Error) {
         print("DEBUG: Connection error: \(error.localizedDescription)")
         
-        // Check if it's an end of stream error
-        if let appRemoteError = error as NSError?,
-           appRemoteError.domain == "com.spotify.app-remote.transport" &&
-           appRemoteError.code == -2001 {
-            print("DEBUG: End of stream detected, attempting to reconnect...")
-            // Attempt to reconnect after a short delay
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+        let nsError = error as NSError
+        if nsError.domain == "com.spotify.app-remote.transport" {
+            switch nsError.code {
+            case -2001:
+                // End of stream: ok to reconnect after delay
+                print("DEBUG: End of stream detected, attempting to reconnect after delay...")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                    self?.connect()
+                }
+            default:
+                // Other transport errors: let didFailConnectionAttemptWithError handle retries
+                print("DEBUG: Transport error, letting retry logic handle reconnection")
+                return
+            }
+        } else if nsError.domain == "com.spotify.app-remote.wamp-client" && nsError.code == -3000 {
+            // Content API error (not a container) - ignore and continue
+            print("DEBUG: Ignoring content API error (not a container)")
+            return
+        } else {
+            // For other errors, try to reconnect through normal retry logic
+            print("DEBUG: Non-transport error, attempting normal retry")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
                 self?.connect()
             }
-            return
-        }
-        
-        // For other errors, try to reconnect
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            self?.connect()
         }
     }
     
@@ -270,10 +279,19 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 return
             }
             
-            print("DEBUG: Found \(items.count) total playlists")
+            // Filter for container items (playlists) only
+            let playlists = items.filter { item in
+                let isContainer = item.container
+                if !isContainer {
+                    print("DEBUG: Skipping non-container item: \(item.title ?? "Unknown")")
+                }
+                return isContainer
+            }
             
-            // Get a random playlist from the items
-            guard let randomPlaylist = items.randomElement() else {
+            print("DEBUG: Found \(playlists.count) playlists")
+            
+            // Get a random playlist from the filtered items
+            guard let randomPlaylist = playlists.randomElement() else {
                 print("DEBUG: No playlists available")
                 return
             }
