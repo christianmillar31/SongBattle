@@ -4,7 +4,7 @@ import SpotifyiOS
 @main
 struct SongBattleApp: App {
     @StateObject private var spotifyService = SpotifyService()
-    @Environment(\.scenePhase) private var phase
+    @Environment(\.scenePhase) var phase
     
     var body: some Scene {
         WindowGroup {
@@ -20,15 +20,15 @@ struct SongBattleApp: App {
                         print("DEBUG: URL was not handled by Spotify service")
                     }
                 }
-                .onChange(of: phase) { phase in
-                    print("DEBUG: Scene phase changed to: \(phase)")
-                    switch phase {
+                .onChange(of: phase) { newPhase in
+                    print("DEBUG: Scene phase changed to: \(newPhase)")
+                    switch newPhase {
                     case .active:
                         // Don't automatically connect - let user initiate connection
                         break
                     case .background:
                         // Only disconnect if we're not in the middle of auth
-                        if spotifyService.authenticationError == nil {
+                        if !spotifyService.isConnecting {
                             spotifyService.disconnect()
                         } else {
                             print("DEBUG: Skipping disconnect during auth")
