@@ -19,6 +19,7 @@
 		7A6AFF872DBB1862001F5D91 /* SpotifyiOS.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; };
 		7A6AFF882DBB1862001F5D91 /* SpotifyiOS.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D3 /* Configuration.swift */; };
+		7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -49,6 +50,7 @@
 		7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2FNC3A47ZF:Spotify"; lastKnownFileType = wrapper.xcframework; path = SpotifyiOS.xcframework; sourceTree = "<group>"; };
 		7A6AFF8C2DBB1D25001F5D91 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A9B9E362DC1CBED004491D3 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
+		7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreSheetView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +102,7 @@
 				1A1A1A1A1A1A1A1A1A1A1A1F /* GameView.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A21 /* TeamsView.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A23 /* SettingsView.swift */,
+				7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";

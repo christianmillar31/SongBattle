@@ -68,6 +68,10 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     private var connectionTimer: Timer?
     private var playbackQueue: [() -> Void] = []
     
+    private var playerAPI: SPTAppRemotePlayerAPI? {
+        return appRemote?.playerAPI
+    }
+    
     // Track played songs to prevent repetition
     private var playedSongs: Set<String> = []
     
@@ -195,7 +199,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
         
         print("DEBUG: Fetching recommended playlists...")
-        appRemote?.contentAPI?.fetchRecommendedContentItems(forType: "default", flattenContainers: true) { [weak self] (result, error) in
+        appRemote?.contentAPI?.fetchRecommendedContentItems(forType: "default", flattenContainers: true) { [weak self] (result: Any?, error: Error?) in
             guard let self = self else { return }
             
             if let error = error {
@@ -229,7 +233,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             print("DEBUG: Selected playlist: \(randomPlaylist.title ?? "Unknown")")
             
             // Fetch tracks from the selected playlist
-            appRemote?.contentAPI?.fetchChildren(of: randomPlaylist) { [weak self] (result, error) in
+            appRemote?.contentAPI?.fetchChildren(of: randomPlaylist) { [weak self] (result: Any?, error: Error?) in
                 guard let self = self else { return }
                 
                 if let error = error {
@@ -281,7 +285,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                     print("DEBUG: Selected random track for playback: \(randomTrack)")
                     self.playedSongs.insert(randomTrack)
                     print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
-                    appRemote?.playerAPI?.play(randomTrack)
+                    self.playerAPI?.play(randomTrack)
                 }
             }
         }
@@ -293,7 +297,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
-        playerAPI?.play(trackUri) { [weak self] (_, error) in
+        playerAPI?.play(trackUri) { [weak self] (_, error: Error?) in
             Task { @MainActor in
                 if let error = error {
                     self?.error = SpotifyError.playbackError(error.localizedDescription)
@@ -305,7 +309,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     func pause() {
         guard appRemote?.isConnected == true else { return }
         
-        playerAPI?.pause { [weak self] (_, error) in
+        playerAPI?.pause { [weak self] (_, error: Error?) in
             Task { @MainActor in
                 if let error = error {
                     self?.error = SpotifyError.playbackError(error.localizedDescription)
@@ -317,7 +321,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     func resume() {
         guard appRemote?.isConnected == true else { return }
         
-        playerAPI?.resume { [weak self] (_, error) in
+        playerAPI?.resume { [weak self] (_, error: Error?) in
             Task { @MainActor in
                 if let error = error {
                     self?.error = SpotifyError.playbackError(error.localizedDescription)
@@ -329,7 +333,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     func skipNext() {
         guard appRemote?.isConnected == true else { return }
         
-        playerAPI?.skip(toNext: { [weak self] (_, error) in
+        playerAPI?.skip(toNext: { [weak self] (_, error: Error?) in
             Task { @MainActor in
                 if let error = error {
                     self?.error = SpotifyError.playbackError(error.localizedDescription)
@@ -341,7 +345,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     func skipPrevious() {
         guard appRemote?.isConnected == true else { return }
         
-        playerAPI?.skip(toPrevious: { [weak self] (_, error) in
+        playerAPI?.skip(toPrevious: { [weak self] (_, error: Error?) in
             Task { @MainActor in
                 if let error = error {
                     self?.error = SpotifyError.playbackError(error.localizedDescription)
