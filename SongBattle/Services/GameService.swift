@@ -40,7 +40,7 @@ class GameService: ObservableObject {
     }
     
     func startGame() {
-        guard !teams.isEmpty else { return }
+        guard teams.count >= 2 else { return }
         gameState = .inProgress
         startNewRound()
     }
