@@ -300,28 +300,37 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         connectionTimer?.invalidate()
         connectionTimer = nil
         
-        // Unsubscribe and disconnect
-        appRemote?.playerAPI?.unsubscribe(toPlayerState: { _, error in
-            if let error = error {
-                print("⚠️ Disconnect: Failed to unsubscribe from player state: \(error.localizedDescription)")
+        // Unsubscribe and disconnect in background
+        Task.detached { [weak self] in
+            // Unsubscribe from player state
+            await self?.appRemote?.playerAPI?.unsubscribe(toPlayerState: { _, error in
+                if let error = error {
+                    print("⚠️ Disconnect: Failed to unsubscribe from player state: \(error.localizedDescription)")
+                }
+            })
+            
+            // Disconnect if connected
+            if await self?.appRemote?.isConnected == true {
+                await self?.appRemote?.disconnect()
             }
-        })
-        if appRemote?.isConnected == true {
-            appRemote?.disconnect()
-        }
-        
-        isConnected = false
-        accessToken = nil
-        authenticationError = nil
-        
-        // Only reset connecting state if we're not in the middle of auth
-        if !isConnecting {
-            isConnecting = false
-            // Clean up instances
-            cleanup()
-            print("DEBUG: Spotify cleaned up")
-        } else {
-            print("DEBUG: Keeping connection state for auth callback")
+            
+            // Update state on main thread
+            await MainActor.run { [weak self] in
+                guard let self = self else { return }
+                self.isConnected = false
+                self.accessToken = nil
+                self.authenticationError = nil
+                
+                // Only reset connecting state if we're not in the middle of auth
+                if !self.isConnecting {
+                    self.isConnecting = false
+                    // Clean up instances
+                    self.cleanup()
+                    print("DEBUG: Spotify cleaned up")
+                } else {
+                    print("DEBUG: Keeping connection state for auth callback")
+                }
+            }
         }
     }
     
