@@ -103,21 +103,39 @@ class GameService: ObservableObject {
     func submitScores(team1Title: Bool, team1Artist: Bool, team2Title: Bool, team2Artist: Bool) {
         guard let song = currentRound?.song else { return }
         
+        print("DEBUG: Scoring guesses for '\(song.name)' by \(song.artist)")
+        
+        // Track scores for this round
+        var team1Score = 0
+        var team2Score = 0
+        
         // Award points to team 1
         if team1Title {
             teams[0].incrementScore()
+            team1Score += 1
+            print("DEBUG: Team 1 correctly guessed the title")
         }
         if team1Artist {
             teams[0].incrementScore()
+            team1Score += 1
+            print("DEBUG: Team 1 correctly guessed the artist")
         }
         
         // Award points to team 2
         if team2Title {
             teams[1].incrementScore()
+            team2Score += 1
+            print("DEBUG: Team 2 correctly guessed the title")
         }
         if team2Artist {
             teams[1].incrementScore()
+            team2Score += 1
+            print("DEBUG: Team 2 correctly guessed the artist")
         }
+        
+        // Log round results
+        print("DEBUG: Round complete - Team 1: \(team1Score) points, Team 2: \(team2Score) points")
+        print("DEBUG: Total scores - Team 1: \(teams[0].score), Team 2: \(teams[1].score)")
     }
     
     private func updateCurrentRound(with track: Track) {
