@@ -440,7 +440,23 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                     return nil
                 }
                 
-                print("DEBUG: Found valid track: \(item.title ?? "Unknown") - \(uri)")
+                // Skip podcasts and episodes
+                if let track = item as? SPTAppRemoteTrack {
+                    if track.isPodcast {
+                        print("DEBUG: Skipping podcast: \(item.title ?? "Unknown")")
+                        return nil
+                    }
+                    if track.isEpisode {
+                        print("DEBUG: Skipping episode: \(item.title ?? "Unknown")")
+                        return nil
+                    }
+                    if track.isAdvertisement {
+                        print("DEBUG: Skipping advertisement")
+                        return nil
+                    }
+                }
+                
+                print("DEBUG: Found valid music track: \(item.title ?? "Unknown") - \(uri)")
                 return uri
             }
             
