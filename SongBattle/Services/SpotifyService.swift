@@ -83,7 +83,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // Add property to track play attempts
     private var playAttempt = 0
     private let maxPlayAttempts = 3
-    private let trackType = "tracks"  // Use string literal as expected by Spotify SDK
+    private let trackType = "track"  // SPTAppRemoteRecommendedContentTypeTrack constant value
     
     override init() {
         super.init()
@@ -383,7 +383,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         // Use tracks content type specifically to only get music tracks
         appRemote.contentAPI?.fetchRecommendedContentItems(
-            forType: "tracks",  // Only pure songs
+            forType: trackType,
             flattenContainers: true  // Collapse any nested containers
         ) { [weak self] (result: Any?, error: Error?) in
             guard let self = self else { return }
@@ -409,9 +409,17 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 return
             }
             
-            // Get all track URIs
-            let trackURIs = items.compactMap { $0.uri }
-            print("DEBUG: Found \(trackURIs.count) tracks")
+            // Filter for valid music tracks and get their URIs
+            let trackURIs = items.compactMap { item -> String? in
+                // Verify it's a track URI (not a podcast episode)
+                guard item.uri.contains(":track:") else {
+                    print("DEBUG: Skipping non-track URI: \(item.uri)")
+                    return nil
+                }
+                return item.uri
+            }
+            
+            print("DEBUG: Found \(trackURIs.count) valid tracks")
             
             // Pick a random track that hasn't been played
             let availableTracks = trackURIs.filter { !self.playedSongs.contains($0) }
