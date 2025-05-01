@@ -420,43 +420,35 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             
             // Get track URIs with enhanced filtering
             let trackURIs = items.compactMap { item -> String? in
-                // Skip non-track content types
-                guard item.contentType == "track" else {
-                    print("DEBUG: Skipping non-track content: \(item.contentType ?? "unknown type")")
+                // Cast to SPTAppRemoteTrack to check track properties
+                guard let track = item as? SPTAppRemoteTrack else {
+                    print("DEBUG: Skipping non-track item")
                     return nil
                 }
                 
-                let uri = item.uri
-                
-                // Verify it's a valid track URI
-                guard uri.hasPrefix("spotify:track:") else {
-                    print("DEBUG: Skipping invalid track URI format: \(uri)")
+                // Skip podcasts, episodes, and ads
+                if track.isPodcast {
+                    print("DEBUG: Skipping podcast: \(track.name)")
                     return nil
                 }
+                if track.isEpisode {
+                    print("DEBUG: Skipping episode: \(track.name)")
+                    return nil
+                }
+                if track.isAdvertisement {
+                    print("DEBUG: Skipping advertisement")
+                    return nil
+                }
+                
+                let uri = track.URI
                 
                 // Skip if already played
                 guard !self.playedSongs.contains(uri) else {
-                    print("DEBUG: Skipping already played track: \(item.title ?? "Unknown")")
+                    print("DEBUG: Skipping already played track: \(track.name)")
                     return nil
                 }
                 
-                // Skip podcasts and episodes
-                if let track = item as? SPTAppRemoteTrack {
-                    if track.isPodcast {
-                        print("DEBUG: Skipping podcast: \(item.title ?? "Unknown")")
-                        return nil
-                    }
-                    if track.isEpisode {
-                        print("DEBUG: Skipping episode: \(item.title ?? "Unknown")")
-                        return nil
-                    }
-                    if track.isAdvertisement {
-                        print("DEBUG: Skipping advertisement")
-                        return nil
-                    }
-                }
-                
-                print("DEBUG: Found valid music track: \(item.title ?? "Unknown") - \(uri)")
+                print("DEBUG: Found valid music track: \(track.name) - \(uri)")
                 return uri
             }
             
