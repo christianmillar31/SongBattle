@@ -348,10 +348,6 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         if !appRemote.isConnected {
             print("DEBUG: Not connected to Spotify, attempting to connect...")
             connect()
-            // Set up a delayed retry after connection
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                self?.playRandomSong()
-            }
             return
         }
         
@@ -362,7 +358,15 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
         
         print("DEBUG: Fetching recommended content...")
-        appRemote.contentAPI?.fetchRecommendedContentItems(forType: "default", flattenContainers: true) { [weak self] (result, error) in
+        
+        // Create options with flattenContainers enabled
+        let options = SPTAppRemoteRecommendedContentOptions()
+        options.flattenContainers = true
+        
+        appRemote.contentAPI?.fetchRecommendedContentItems(
+            forType: "default",
+            options: options
+        ) { [weak self] (result, error) in
             guard let self = self else { return }
             
             if let error = error {
@@ -373,10 +377,6 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                    nsError.code == -2001 {
                     print("DEBUG: End of stream detected, reconnecting...")
                     self.connect()
-                    // Retry the playRandomSong after a delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                        self?.playRandomSong()
-                    }
                 } else {
                     self.handleConnectionError(error)
                 }
@@ -415,7 +415,16 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 print("DEBUG: Selected random track for playback: \(randomTrack)")
                 self.playedSongs.insert(randomTrack)
                 print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
-                appRemote.playerAPI?.play(randomTrack)
+                
+                // Add callback to handle playback errors
+                appRemote.playerAPI?.play(randomTrack) { [weak self] (_, error) in
+                    if let error = error {
+                        print("DEBUG: Playback error: \(error.localizedDescription)")
+                        self?.handleConnectionError(error)
+                    } else {
+                        print("DEBUG: ▶️ Now playing \(randomTrack)")
+                    }
+                }
             }
         }
     }
@@ -568,15 +577,22 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             self.error = nil
             
             // Set up player state subscription
-        appRemote.playerAPI?.delegate = self
+            appRemote.playerAPI?.delegate = self
             appRemote.playerAPI?.subscribe(toPlayerState: { [weak self] success, error in
                 if let error = error {
                     print("DEBUG: Failed to subscribe to player state:", error)
                     Task { @MainActor in
                         self?.error = SpotifyError.playbackError(error.localizedDescription)
                     }
+                } else {
+                    print("DEBUG: Successfully subscribed to player state")
                 }
             })
+            
+            // If we were waiting to play a song, do it now
+            if self.currentTrack == nil {
+                print("DEBUG: No current track, ready to play")
+            }
         }
     }
     
