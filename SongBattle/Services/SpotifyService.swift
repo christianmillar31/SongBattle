@@ -359,14 +359,11 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         print("DEBUG: Fetching recommended content...")
         
-        // Create options with flattenContainers enabled
-        let options = SPTAppRemoteRecommendedContentOptions()
-        options.flattenContainers = true
-        
+        // Use the correct method to fetch recommended content
         appRemote.contentAPI?.fetchRecommendedContentItems(
-            forType: "default",
-            options: options
-        ) { [weak self] (result, error) in
+            forType: .default,
+            flattenContainers: true
+        ) { [weak self] (result: Any?, error: Error?) in
             guard let self = self else { return }
             
             if let error = error {
@@ -417,7 +414,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
                 
                 // Add callback to handle playback errors
-                appRemote.playerAPI?.play(randomTrack) { [weak self] (_, error) in
+                appRemote.playerAPI?.play(randomTrack) { [weak self] (_, error: Error?) in
                     if let error = error {
                         print("DEBUG: Playback error: \(error.localizedDescription)")
                         self?.handleConnectionError(error)
