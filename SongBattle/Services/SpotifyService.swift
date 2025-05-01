@@ -231,7 +231,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         if let accessToken = self.accessToken {
             print("DEBUG: Attempting to connect with existing access token")
             appRemote?.connectionParameters.accessToken = accessToken
-            appRemote?.connect()
+        appRemote?.connect()
         } else {
             print("DEBUG: No access token, initiating new session with PKCE")
             guard let sessionManager = sessionManager else {
@@ -279,7 +279,11 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         connectionTimer = nil
         
         // Unsubscribe from player state to prevent memory leaks
-        appRemote?.playerAPI?.unsubscribeFromPlayerState(nil)
+        appRemote?.playerAPI?.unsubscribe(toPlayerState: { _, error in
+            if let error = error {
+                print("⚠️ Cleanup: Failed to unsubscribe from player state: \(error.localizedDescription)")
+            }
+        })
         
         // Only clean up if we're not in the middle of connecting
         if !isConnecting {
@@ -297,7 +301,11 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         connectionTimer = nil
         
         // Unsubscribe and disconnect
-        appRemote?.playerAPI?.unsubscribeFromPlayerState(nil)
+        appRemote?.playerAPI?.unsubscribe(toPlayerState: { _, error in
+            if let error = error {
+                print("⚠️ Disconnect: Failed to unsubscribe from player state: \(error.localizedDescription)")
+            }
+        })
         if appRemote?.isConnected == true {
             appRemote?.disconnect()
         }
@@ -600,9 +608,9 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             self.error = nil
             
             // Set up player state subscription
-            appRemote.playerAPI?.delegate = self
+        appRemote.playerAPI?.delegate = self
             appRemote.playerAPI?.subscribe(toPlayerState: { [weak self] success, error in
-                if let error = error {
+            if let error = error {
                     print("DEBUG: Failed to subscribe to player state:", error)
                     Task { @MainActor in
                         self?.error = SpotifyError.playbackError(error.localizedDescription)
