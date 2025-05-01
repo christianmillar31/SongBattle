@@ -379,18 +379,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
-        // If we've played all available tracks, reset the played tracks set
-        if playedSongs.count >= 100 {
-            print("DEBUG: Reset played tracks")
-            playedSongs.removeAll()
-        }
-        
         print("DEBUG: Fetching recommended tracks (attempt \(playAttempt)/\(maxPlayAttempts))...")
         
-        // Use tracks content type specifically with proper type annotation
+        // Use tracks content type specifically to only get music tracks
         appRemote.contentAPI?.fetchRecommendedContentItems(
-            forType: trackType,
-            flattenContainers: true
+            forType: "tracks",  // Only pure songs
+            flattenContainers: true  // Collapse any nested containers
         ) { [weak self] (result: Any?, error: Error?) in
             guard let self = self else { return }
             
@@ -415,51 +409,19 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                 return
             }
             
-            // Reset attempt counter since we found items
-            self.playAttempt = 0
+            // Get all track URIs
+            let trackURIs = items.compactMap { $0.uri }
+            print("DEBUG: Found \(trackURIs.count) tracks")
             
-            // Get track URIs with enhanced filtering
-            let trackURIs = items.compactMap { item -> String? in
-                // Cast to SPTAppRemoteTrack to check track properties
-                guard let track = item as? SPTAppRemoteTrack else {
-                    print("DEBUG: Skipping non-track item")
-                    return nil
-                }
-                
-                // Skip podcasts, episodes, and ads
-                if track.isPodcast {
-                    print("DEBUG: Skipping podcast: \(track.name)")
-                    return nil
-                }
-                if track.isEpisode {
-                    print("DEBUG: Skipping episode: \(track.name)")
-                    return nil
-                }
-                if track.isAdvertisement {
-                    print("DEBUG: Skipping advertisement")
-                    return nil
-                }
-                
-                let uri = track.URI
-                
-                // Skip if already played
-                guard !self.playedSongs.contains(uri) else {
-                    print("DEBUG: Skipping already played track: \(track.name)")
-                    return nil
-                }
-                
-                print("DEBUG: Found valid music track: \(track.name) - \(uri)")
-                return uri
-            }
+            // Pick a random track that hasn't been played
+            let availableTracks = trackURIs.filter { !self.playedSongs.contains($0) }
             
-            print("DEBUG: Found \(trackURIs.count) unplayed tracks")
-            
-            if let randomTrack = trackURIs.randomElement() {
+            if let randomTrack = availableTracks.randomElement() {
                 print("DEBUG: Selected random track for playback: \(randomTrack)")
                 self.playedSongs.insert(randomTrack)
                 print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
                 
-                // Add callback to handle playback errors
+                // Play the track
                 appRemote.playerAPI?.play(randomTrack) { [weak self] (_, error: Error?) in
                     if let error = error {
                         print("DEBUG: Playback error: \(error.localizedDescription)")
