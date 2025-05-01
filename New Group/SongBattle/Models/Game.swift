@@ -1,11 +1,3 @@
-//
-//  Game.swift
-//  SongBattle
-//
-//  Created by Christian Millar on 4/30/25.
-//
-
-
 import Foundation
 
 class Game {

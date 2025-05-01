@@ -15,13 +15,11 @@
 		1A1A1A1A1A1A1A1A1A1A1A24 /* SpotifyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A25 /* SpotifyService.swift */; };
 		1A1A1A1A1A1A1A1A1A1A1A26 /* GameService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A27 /* GameService.swift */; };
 		1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A40 /* Team.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */; };
 		7A6AFF872DBB1862001F5D91 /* SpotifyiOS.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; };
 		7A6AFF882DBB1862001F5D91 /* SpotifyiOS.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D3 /* Configuration.swift */; };
 		7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */; };
-		7ACD609A2DC3091E00DB09E4 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ACD60992DC3091900DB09E4 /* Track.swift */; };
-		7ACD609D2DC3094900DB09E4 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ACD609C2DC3094900DB09E4 /* Player.swift */; };
-		7ACD609F2DC3095900DB09E4 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ACD609E2DC3095900DB09E4 /* Game.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -48,13 +46,11 @@
 		1A1A1A1A1A1A1A1A1A1A1A27 /* GameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameService.swift; sourceTree = "<group>"; };
 		1A1A1A1A1A1A1A1A1A1A1A28 /* SongBattle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SongBattle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A1A1A1A1A1A1A1A1A1A1A40 /* Team.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Team.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2FNC3A47ZF:Spotify"; lastKnownFileType = wrapper.xcframework; path = SpotifyiOS.xcframework; sourceTree = "<group>"; };
 		7A6AFF8C2DBB1D25001F5D91 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A9B9E362DC1CBED004491D3 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreSheetView.swift; sourceTree = "<group>"; };
-		7ACD60992DC3091900DB09E4 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
-		7ACD609C2DC3094900DB09E4 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
-		7ACD609E2DC3095900DB09E4 /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -123,10 +119,8 @@
 		1A1A1A1A1A1A1A1A1A1A1A43 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				7ACD609E2DC3095900DB09E4 /* Game.swift */,
-				7ACD609C2DC3094900DB09E4 /* Player.swift */,
-				7ACD60992DC3091900DB09E4 /* Track.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A40 /* Team.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -209,11 +203,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A1A1A1A1A1A1A1A1A1A1A1A /* SongBattleApp.swift in Sources */,
-				7ACD609A2DC3091E00DB09E4 /* Track.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A1C /* ContentView.swift in Sources */,
-				7ACD609F2DC3095900DB09E4 /* Game.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A1E /* GameView.swift in Sources */,
-				7ACD609D2DC3094900DB09E4 /* Player.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A20 /* TeamsView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A22 /* SettingsView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A24 /* SpotifyService.swift in Sources */,
@@ -221,6 +212,7 @@
 				7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A26 /* GameService.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -372,7 +364,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.christianmillar31.SongBattle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.SongBattle;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/SongBattle/SongBattle-Bridging-Header.h";
@@ -407,7 +399,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.christianmillar31.SongBattle;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.SongBattle;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(SRCROOT)/SongBattle/SongBattle-Bridging-Header.h";

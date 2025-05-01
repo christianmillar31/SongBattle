@@ -1,4 +1,3 @@
-
 import Foundation
 
 struct Track: Identifiable {
@@ -15,4 +14,4 @@ struct Track: Identifiable {
         self.previewUrl = previewUrl
         self.albumArtUrl = albumArtUrl
     }
-}
+} 
