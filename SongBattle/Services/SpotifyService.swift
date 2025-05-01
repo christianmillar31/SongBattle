@@ -361,7 +361,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         // Use the correct method to fetch recommended content
         appRemote.contentAPI?.fetchRecommendedContentItems(
-            forType: .default,
+            forType: "default",
             flattenContainers: true
         ) { [weak self] (result: Any?, error: Error?) in
             guard let self = self else { return }
