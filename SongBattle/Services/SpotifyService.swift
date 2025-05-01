@@ -273,6 +273,9 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         connectionTimer?.invalidate()
         connectionTimer = nil
         
+        // Unsubscribe from player state to prevent memory leaks
+        appRemote?.playerAPI?.unsubscribeFromPlayerState(nil)
+        
         // Only clean up if we're not in the middle of connecting
         if !isConnecting {
             print("DEBUG: Fully cleaning up Spotify instances")
@@ -288,9 +291,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         connectionTimer?.invalidate()
         connectionTimer = nil
         
+        // Unsubscribe and disconnect
+        appRemote?.playerAPI?.unsubscribeFromPlayerState(nil)
         if appRemote?.isConnected == true {
-        appRemote?.disconnect()
-    }
+            appRemote?.disconnect()
+        }
+        
         isConnected = false
         accessToken = nil
         authenticationError = nil
@@ -359,71 +365,88 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         print("DEBUG: Fetching recommended content...")
         
-        // Use the correct method to fetch recommended content
-        appRemote.contentAPI?.fetchRecommendedContentItems(
-            forType: "default",
-            flattenContainers: true
-        ) { [weak self] (result: Any?, error: Error?) in
-            guard let self = self else { return }
-            
-            if let error = error {
-                print("DEBUG: Error fetching recommended content: \(error.localizedDescription)")
-                // Handle end of stream specifically
-                if let nsError = error as NSError?,
-                   nsError.domain == "com.spotify.app-remote.transport",
-                   nsError.code == -2001 {
-                    print("DEBUG: End of stream detected, reconnecting...")
-                    self.connect()
-                } else {
-                    self.handleConnectionError(error)
-                }
-                return
-            }
-            
-            guard let items = result as? [SPTAppRemoteContentItem] else {
-                print("DEBUG: No recommended items found or invalid type")
-                return
-            }
-            
-            // Get all track URIs directly from flattened content
-            let trackURIs = items.compactMap { item -> String? in
-                let uri = item.uri
-                print("DEBUG: Checking item - Title: \(item.title ?? "Unknown"), URI: \(uri)")
+        // Track retry attempts for this fetch
+        var retryCount = 0
+        let maxRetries = 2
+        
+        func attemptFetch() {
+            // Use SDK constant for content type
+            appRemote.contentAPI?.fetchRecommendedContentItems(
+                forType: SPTAppRemoteContentTypeDefault,
+                flattenContainers: true
+            ) { [weak self] (result: Any?, error: Error?) in
+                guard let self = self else { return }
                 
-                // Only include track URIs that haven't been played
-                if uri.hasPrefix("spotify:track:") && !self.playedSongs.contains(uri) {
-                    print("DEBUG: Found valid unplayed track: \(item.title ?? "Unknown") - \(uri)")
-                    return uri
-                }
-                return nil
-            }
-            
-            print("DEBUG: Found \(trackURIs.count) unplayed tracks")
-            
-            if trackURIs.isEmpty {
-                print("DEBUG: No unplayed tracks found, resetting played tracks and trying again")
-                self.playedSongs.removeAll()
-                self.playRandomSong()
-                return
-            }
-            
-            // Select a random track from the unplayed tracks
-            if let randomTrack = trackURIs.randomElement() {
-                print("DEBUG: Selected random track for playback: \(randomTrack)")
-                self.playedSongs.insert(randomTrack)
-                print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
-                
-                // Add callback to handle playback errors
-                appRemote.playerAPI?.play(randomTrack) { [weak self] (_, error: Error?) in
-                    if let error = error {
-                        print("DEBUG: Playback error: \(error.localizedDescription)")
-                        self?.handleConnectionError(error)
+                if let error = error {
+                    print("DEBUG: Error fetching recommended content: \(error.localizedDescription)")
+                    // Handle end of stream specifically
+                    if let nsError = error as NSError?,
+                       nsError.domain == "com.spotify.app-remote.transport",
+                       nsError.code == -2001 {
+                        print("DEBUG: End of stream detected, reconnecting...")
+                        self.connect()
                     } else {
-                        print("DEBUG: ▶️ Now playing \(randomTrack)")
+                        self.handleConnectionError(error)
+                    }
+                    return
+                }
+                
+                guard let items = result as? [SPTAppRemoteContentItem] else {
+                    print("DEBUG: No recommended items found or invalid type")
+                    return
+                }
+                
+                // Get all track URIs directly from flattened content
+                let trackURIs = items.compactMap { item -> String? in
+                    let uri = item.uri
+                    print("DEBUG: Checking item - Title: \(item.title ?? "Unknown"), URI: \(uri)")
+                    
+                    // Only include track URIs that haven't been played
+                    if uri.hasPrefix("spotify:track:") && !self.playedSongs.contains(uri) {
+                        print("DEBUG: Found valid unplayed track: \(item.title ?? "Unknown") - \(uri)")
+                        return uri
+                    }
+                    return nil
+                }
+                
+                print("DEBUG: Found \(trackURIs.count) unplayed tracks")
+                
+                if trackURIs.isEmpty {
+                    // If we haven't exceeded max retries, clear played songs and try again
+                    if retryCount < maxRetries {
+                        retryCount += 1
+                        print("DEBUG: No unplayed tracks found, retry attempt \(retryCount) of \(maxRetries)")
+                        self.playedSongs.removeAll()
+                        attemptFetch()
+                    } else {
+                        print("DEBUG: Failed to find tracks after \(maxRetries) attempts")
+                        // TODO: Consider falling back to a default playlist or showing an error
+                        return
+                    }
+                    return
+                }
+                
+                // Select a random track from the unplayed tracks
+                if let randomTrack = trackURIs.randomElement() {
+                    print("DEBUG: Selected random track for playback: \(randomTrack)")
+                    self.playedSongs.insert(randomTrack)
+                    print("DEBUG: Added track to played songs, total played: \(self.playedSongs.count)")
+                    
+                    // Add callback to handle playback errors
+                    appRemote.playerAPI?.play(randomTrack) { [weak self] (_, error: Error?) in
+                        if let error = error {
+                            print("DEBUG: Playback error: \(error.localizedDescription)")
+                            self?.handleConnectionError(error)
+                        } else {
+                            print("DEBUG: ▶️ Now playing \(randomTrack)")
+                        }
                     }
                 }
             }
         }
+        
+        // Start the first attempt
+        attemptFetch()
     }
     
     func play(_ trackUri: String) {
@@ -484,8 +507,8 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             Task { @MainActor in
                 if let error = error {
                     self?.error = SpotifyError.playbackError(error.localizedDescription)
-    }
-}
+                }
+            }
         })
     }
     
