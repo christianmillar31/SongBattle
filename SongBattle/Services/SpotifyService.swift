@@ -83,7 +83,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // Add property to track play attempts
     private var playAttempt = 0
     private let maxPlayAttempts = 3
-    private let trackType = "tracks"  // Use specific track type instead of default
+    private let trackType = SPTAppRemoteRecommendedContentType.tracks
     
     override init() {
         super.init()
@@ -387,7 +387,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         
         print("DEBUG: Fetching recommended tracks (attempt \(playAttempt)/\(maxPlayAttempts))...")
         
-        // Use tracks content type specifically
+        // Use tracks content type specifically with proper type annotation
         appRemote.contentAPI?.fetchRecommendedContentItems(
             forType: trackType,
             flattenContainers: true
@@ -418,9 +418,21 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             // Reset attempt counter since we found items
             self.playAttempt = 0
             
-            // Get track URIs (should all be valid track URIs now)
+            // Get track URIs with enhanced filtering
             let trackURIs = items.compactMap { item -> String? in
+                // Skip non-track content types
+                guard item.contentType == "track" else {
+                    print("DEBUG: Skipping non-track content: \(item.contentType ?? "unknown type")")
+                    return nil
+                }
+                
                 let uri = item.uri
+                
+                // Verify it's a valid track URI
+                guard uri.hasPrefix("spotify:track:") else {
+                    print("DEBUG: Skipping invalid track URI format: \(uri)")
+                    return nil
+                }
                 
                 // Skip if already played
                 guard !self.playedSongs.contains(uri) else {
@@ -428,7 +440,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
                     return nil
                 }
                 
-                print("DEBUG: Found track: \(item.title ?? "Unknown") - \(uri)")
+                print("DEBUG: Found valid track: \(item.title ?? "Unknown") - \(uri)")
                 return uri
             }
             
