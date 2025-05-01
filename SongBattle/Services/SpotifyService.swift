@@ -83,7 +83,7 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // Add property to track play attempts
     private var playAttempt = 0
     private let maxPlayAttempts = 3
-    private let trackType = SPTAppRemoteRecommendedContentType.tracks
+    private let trackType = "tracks"  // Use string literal as expected by Spotify SDK
     
     override init() {
         super.init()
