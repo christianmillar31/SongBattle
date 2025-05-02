@@ -1,48 +1,50 @@
 import SwiftUI
 
 struct ContentView: View {
-    @EnvironmentObject var spotifyService: SpotifyService
-    @StateObject private var gameService: GameService
-    @State private var selectedTab = 0
-    
-    init() {
-        // Initialize GameService with a temporary SpotifyService
-        // The actual SpotifyService will be injected from the environment
-        _gameService = StateObject(wrappedValue: GameService(spotifyService: SpotifyService()))
-    }
+    @StateObject private var spotifyService = SpotifyService()
+    @State private var isLoading = true
     
     var body: some View {
-        TabView(selection: $selectedTab) {
-            GameView()
-                .environmentObject(gameService)
-                .tabItem {
-                    Label("Game", systemImage: "music.note")
-                }
-                .tag(0)
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                gradient: Gradient(colors: [Color.theme.gradientStart, Color.theme.gradientEnd]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             
-            TeamsView(gameService: gameService)
-                .tabItem {
-                    Label("Teams", systemImage: "person.3")
+            if isLoading {
+                LoadingView()
+            } else {
+                VStack(spacing: 20) {
+                    Text("SongBattle")
+                        .font(.largeTitle.bold())
+                        .foregroundColor(.white)
+                    
+                    TeamsView()
+                        .cardStyle()
+                    
+                    NavigationLink(destination: GameView()) {
+                        Text("Start Game")
+                            .font(.title3.weight(.semibold))
+                    }
+                    .primaryButtonStyle()
                 }
-                .tag(1)
-            
-            SettingsView(spotifyService: spotifyService)
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
-                .tag(2)
+                .padding()
+            }
         }
         .onAppear {
-            // Update GameService to use the environment's SpotifyService
-            gameService.updateSpotifyService(spotifyService)
+            // Simulate loading time and initialize services
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    isLoading = false
+                }
+            }
         }
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-        let spotify = SpotifyService()
-        ContentView()
-            .environmentObject(spotify)
-    }
+#Preview {
+    ContentView()
 } 

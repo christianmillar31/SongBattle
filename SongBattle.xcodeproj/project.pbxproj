@@ -15,13 +15,18 @@
 		1A1A1A1A1A1A1A1A1A1A1A24 /* SpotifyService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A25 /* SpotifyService.swift */; };
 		1A1A1A1A1A1A1A1A1A1A1A26 /* GameService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A27 /* GameService.swift */; };
 		1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A40 /* Team.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */; };
 		7A6AFF872DBB1862001F5D91 /* SpotifyiOS.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; };
 		7A6AFF882DBB1862001F5D91 /* SpotifyiOS.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D3 /* Configuration.swift */; };
 		7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */; };
-		7ACD609A2DC3091E00DB09E4 /* Track.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ACD60992DC3091900DB09E4 /* Track.swift */; };
-		7ACD609D2DC3094900DB09E4 /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ACD609C2DC3094900DB09E4 /* Player.swift */; };
-		7ACD609F2DC3095900DB09E4 /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ACD609E2DC3095900DB09E4 /* Game.swift */; };
+		7AF458322DC310B900FF09AF /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF458302DC310B900FF09AF /* ViewModifiers.swift */; };
+		7AF458332DC310B900FF09AF /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF4582F2DC310B900FF09AF /* Configuration.swift */; };
+		7AF458342DC310B900FF09AF /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF4582E2DC310B900FF09AF /* ColorTheme.swift */; };
+		7AF458372DC310D700FF09AF /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF458352DC310D700FF09AF /* LoadingView.swift */; };
+		7AF4583F2DC3123000FF09AF /* Game.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF4583D2DC3123000FF09AF /* Game.swift */; };
+		7AF458402DC3123000FF09AF /* Player.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF4583E2DC3123000FF09AF /* Player.swift */; };
+		7AF458502DC4775500FF09AF /* Assets.xcassets in Compile Assets Catalog */ = {isa = PBXBuildFile; fileRef = 7AF4584E2DC475DF00FF09AF /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -36,6 +41,17 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		7AF4584A2DC4731500FF09AF /* Compile Assets Catalog */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				7AF458502DC4775500FF09AF /* Assets.xcassets in Compile Assets Catalog */,
+			);
+			name = "Compile Assets Catalog";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -48,13 +64,19 @@
 		1A1A1A1A1A1A1A1A1A1A1A27 /* GameService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameService.swift; sourceTree = "<group>"; };
 		1A1A1A1A1A1A1A1A1A1A1A28 /* SongBattle.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SongBattle.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A1A1A1A1A1A1A1A1A1A1A40 /* Team.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Team.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
 		7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2FNC3A47ZF:Spotify"; lastKnownFileType = wrapper.xcframework; path = SpotifyiOS.xcframework; sourceTree = "<group>"; };
-		7A6AFF8C2DBB1D25001F5D91 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7A9B9E362DC1CBED004491D3 /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreSheetView.swift; sourceTree = "<group>"; };
-		7ACD60992DC3091900DB09E4 /* Track.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Track.swift; sourceTree = "<group>"; };
-		7ACD609C2DC3094900DB09E4 /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
-		7ACD609E2DC3095900DB09E4 /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
+		7AF4582E2DC310B900FF09AF /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
+		7AF4582F2DC310B900FF09AF /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
+		7AF458302DC310B900FF09AF /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
+		7AF458352DC310D700FF09AF /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		7AF4583D2DC3123000FF09AF /* Game.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Game.swift; sourceTree = "<group>"; };
+		7AF4583E2DC3123000FF09AF /* Player.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Player.swift; sourceTree = "<group>"; };
+		7AF458412DC3124100FF09AF /* SongBattle-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "SongBattle-Bridging-Header.h"; sourceTree = "<group>"; };
+		7AF458462DC3159C00FF09AF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7AF4584E2DC475DF00FF09AF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -82,7 +104,10 @@
 		1A1A1A1A1A1A1A1A1A1A1A2B /* SongBattle */ = {
 			isa = PBXGroup;
 			children = (
-				7A6AFF8C2DBB1D25001F5D91 /* Info.plist */,
+				7AF4584E2DC475DF00FF09AF /* Assets.xcassets */,
+				7AF458462DC3159C00FF09AF /* Info.plist */,
+				7AF458412DC3124100FF09AF /* SongBattle-Bridging-Header.h */,
+				7AF458312DC310B900FF09AF /* Utilities */,
 				1A1A1A1A1A1A1A1A1A1A1A1B /* SongBattleApp.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A2D /* Views */,
 				1A1A1A1A1A1A1A1A1A1A1A2E /* Services */,
@@ -102,6 +127,7 @@
 		1A1A1A1A1A1A1A1A1A1A1A2D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				7AF458352DC310D700FF09AF /* LoadingView.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A1D /* ContentView.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A1F /* GameView.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A21 /* TeamsView.swift */,
@@ -123,10 +149,10 @@
 		1A1A1A1A1A1A1A1A1A1A1A43 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				7ACD609E2DC3095900DB09E4 /* Game.swift */,
-				7ACD609C2DC3094900DB09E4 /* Player.swift */,
-				7ACD60992DC3091900DB09E4 /* Track.swift */,
+				7AF4583D2DC3123000FF09AF /* Game.swift */,
+				7AF4583E2DC3123000FF09AF /* Player.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A40 /* Team.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A42 /* Track.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -137,6 +163,16 @@
 				7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7AF458312DC310B900FF09AF /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				7AF4582E2DC310B900FF09AF /* ColorTheme.swift */,
+				7AF4582F2DC310B900FF09AF /* Configuration.swift */,
+				7AF458302DC310B900FF09AF /* ViewModifiers.swift */,
+			);
+			path = Utilities;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -150,6 +186,8 @@
 				1A1A1A1A1A1A1A1A1A1A1A31 /* Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A32 /* Resources */,
 				7A6AFF892DBB1862001F5D91 /* Embed Frameworks */,
+				7AF458492DC4712700FF09AF /* ShellScript */,
+				7AF4584A2DC4731500FF09AF /* Compile Assets Catalog */,
 			);
 			buildRules = (
 			);
@@ -203,24 +241,48 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		7AF458492DC4712700FF09AF /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "touch \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		1A1A1A1A1A1A1A1A1A1A1A31 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				1A1A1A1A1A1A1A1A1A1A1A1A /* SongBattleApp.swift in Sources */,
-				7ACD609A2DC3091E00DB09E4 /* Track.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A1C /* ContentView.swift in Sources */,
-				7ACD609F2DC3095900DB09E4 /* Game.swift in Sources */,
+				7AF4583F2DC3123000FF09AF /* Game.swift in Sources */,
+				7AF458402DC3123000FF09AF /* Player.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A1E /* GameView.swift in Sources */,
-				7ACD609D2DC3094900DB09E4 /* Player.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A20 /* TeamsView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A22 /* SettingsView.swift in Sources */,
+				7AF458372DC310D700FF09AF /* LoadingView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A24 /* SpotifyService.swift in Sources */,
 				7A9B9E372DC1CBED004491D3 /* Configuration.swift in Sources */,
 				7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A26 /* GameService.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */,
+				7AF458322DC310B900FF09AF /* ViewModifiers.swift in Sources */,
+				7AF458332DC310B900FF09AF /* Configuration.swift in Sources */,
+				7AF458342DC310B900FF09AF /* ColorTheme.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
