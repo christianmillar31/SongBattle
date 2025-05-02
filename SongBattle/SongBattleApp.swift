@@ -3,7 +3,7 @@ import SpotifyiOS
 
 @main
 struct SongBattleApp: App {
-    @StateObject private var spotifyService = SpotifyService()
+    @StateObject private var spotifyService = SpotifyService.shared
     @Environment(\.scenePhase) var phase
     
     var body: some Scene {

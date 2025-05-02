@@ -6,6 +6,7 @@ class GameService: ObservableObject {
     @Published var currentRound: Round?
     @Published var teams: [Team] = []
     @Published var gameState: GameState = .notStarted
+    @Published var selectedCategories: Set<MusicCategory> = []
     
     var spotifyService: SpotifyService
     private var cancellables = Set<AnyCancellable>()
@@ -25,6 +26,18 @@ class GameService: ObservableObject {
         spotifyService = newService
         cancellables.removeAll()
         setupSubscriptions()
+    }
+    
+    func toggleCategory(_ category: MusicCategory) {
+        if selectedCategories.contains(category) {
+            selectedCategories.remove(category)
+        } else {
+            selectedCategories.insert(category)
+        }
+    }
+    
+    func clearCategories() {
+        selectedCategories.removeAll()
     }
     
     private func setupSubscriptions() {
@@ -97,7 +110,13 @@ class GameService: ObservableObject {
         
         // Only play random song when we're actually connected
         print("DEBUG: Connected to Spotify, playing random song...")
-        spotifyService.playRandomSong()
+        if !selectedCategories.isEmpty {
+            // Play a song from selected categories
+            spotifyService.playRandomSong(from: selectedCategories)
+        } else {
+            // Play any random song
+            spotifyService.playRandomSong()
+        }
     }
     
     func submitScores(team1Title: Bool, team1Artist: Bool, team2Title: Bool, team2Artist: Bool) {
@@ -136,6 +155,10 @@ class GameService: ObservableObject {
         // Log round results
         print("DEBUG: Round complete - Team 1: \(team1Score) points, Team 2: \(team2Score) points")
         print("DEBUG: Total scores - Team 1: \(teams[0].score), Team 2: \(teams[1].score)")
+        
+        // Force UI update by reassigning teams array
+        objectWillChange.send()
+        teams = teams
     }
     
     private func updateCurrentRound(with track: Track) {

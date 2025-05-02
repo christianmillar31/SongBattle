@@ -30,8 +30,12 @@ class Game {
         currentRound = 1
         isGameOver = false
         teams.forEach { team in
-            team.score = 0
-            team.tracks.removeAll()
+            // Reset by creating a new team with the same ID and name
+            // This automatically resets both score and tracks to empty
+            let newTeam = Team(id: team.id, name: team.name)
+            if let index = teams.firstIndex(where: { $0.id == team.id }) {
+                teams[index] = newTeam
+            }
         }
     }
 } 

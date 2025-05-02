@@ -97,6 +97,6 @@ struct AddTeamView: View {
 
 struct TeamsView_Previews: PreviewProvider {
     static var previews: some View {
-        TeamsView(gameService: GameService(spotifyService: SpotifyService()))
+        TeamsView(gameService: GameService(spotifyService: SpotifyService.shared))
     }
 } 

@@ -6,9 +6,8 @@ struct ContentView: View {
     @State private var selectedTab = 0
     
     init() {
-        // Initialize GameService with a temporary SpotifyService
-        // The actual SpotifyService will be injected from the environment
-        _gameService = StateObject(wrappedValue: GameService(spotifyService: SpotifyService()))
+        // Initialize GameService with the shared SpotifyService
+        _gameService = StateObject(wrappedValue: GameService(spotifyService: SpotifyService.shared))
     }
     
     var body: some View {
@@ -41,8 +40,7 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        let spotify = SpotifyService()
         ContentView()
-            .environmentObject(spotify)
+            .environmentObject(SpotifyService.shared)
     }
 } 

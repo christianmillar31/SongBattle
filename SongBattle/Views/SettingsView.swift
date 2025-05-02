@@ -52,6 +52,6 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(spotifyService: SpotifyService())
+        SettingsView(spotifyService: SpotifyService.shared)
     }
 } 

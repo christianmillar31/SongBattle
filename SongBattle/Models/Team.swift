@@ -1,9 +1,9 @@
 import Foundation
 
-class Team: Identifiable {
+class Team: Identifiable, ObservableObject {
     let id: String
     let name: String
-    private(set) var score: Int
+    @Published private(set) var score: Int
     private(set) var tracks: [Track]
     
     init(id: String, name: String) {
@@ -19,5 +19,9 @@ class Team: Identifiable {
     
     func incrementScore() {
         score += 1
+    }
+    
+    func resetScore() {
+        score = 0
     }
 } 

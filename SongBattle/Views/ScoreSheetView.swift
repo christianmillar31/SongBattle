@@ -67,9 +67,9 @@ struct ScoreSheetView: View {
 }
 
 #Preview {
-    let spotifyService = SpotifyService()
+    let spotifyService = SpotifyService.shared
     let gameService = GameService(spotifyService: spotifyService)
-    return ScoreSheetView(
+    ScoreSheetView(
         gameService: gameService,
         spotifyService: spotifyService
     )
