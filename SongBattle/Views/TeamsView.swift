@@ -1,11 +1,12 @@
 import SwiftUI
 
 struct TeamsView: View {
+    @EnvironmentObject var gameService: GameService
     @StateObject private var viewModel: TeamsViewModel
     @State private var showingAddTeam = false
     
-    init(gameService: GameService) {
-        _viewModel = StateObject(wrappedValue: TeamsViewModel(gameService: gameService))
+    init() {
+        _viewModel = StateObject(wrappedValue: TeamsViewModel(gameService: GameService(spotifyService: SpotifyService.shared)))
     }
     
     var body: some View {
@@ -31,6 +32,11 @@ struct TeamsView: View {
         .sheet(isPresented: $showingAddTeam) {
             AddTeamView(viewModel: viewModel)
         }
+        .onAppear {
+            if viewModel.gameService !== gameService {
+                viewModel.updateGameService(gameService)
+            }
+        }
     }
 }
 
@@ -47,7 +53,7 @@ struct TeamRow: View {
 
 struct TeamsView_Previews: PreviewProvider {
     static var previews: some View {
-        TeamsView(gameService: GameService(spotifyService: SpotifyService.shared))
+        TeamsView()
             .environmentObject(GameService(spotifyService: SpotifyService.shared))
     }
 }

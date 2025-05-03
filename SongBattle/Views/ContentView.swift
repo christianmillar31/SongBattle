@@ -63,36 +63,44 @@ struct ContentView: View {
                     }
                     .padding()
                 }
+                // Fixed gear overlay
+                VStack {
+                    HStack {
+                        Spacer()
+                        Button(action: { showingSettings = true }) {
+                            Image(systemName: "gear")
+                                .font(.title3.weight(.semibold))
+                                .padding(8)
+                                .background(Color.black.opacity(0.3))
+                                .clipShape(Circle())
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(.top, 10)
+                .padding(.trailing, 10)
             }
             .navigationTitle("SongSmash")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingSettings = true }) {
-                        Image(systemName: "gear")
-                            .font(.title3.weight(.semibold))
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
+            }
+            .onAppear {
+                // Simulate loading time and initialize services
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    withAnimation {
+                        isLoading = false
                     }
                 }
             }
-        }
-        .sheet(isPresented: $showingSettings) {
-            SettingsView()
-        }
-        .onAppear {
-            // Simulate loading time and initialize services
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                withAnimation {
-                    isLoading = false
-                }
-            }
-        }
-        .background(
-            NavigationLink(
-                destination: GameView(gameService: gameService),
-                isActive: $isGameActive,
-                label: { EmptyView() }
+            .background(
+                NavigationLink(
+                    destination: GameView(gameService: gameService),
+                    isActive: $isGameActive,
+                    label: { EmptyView() }
+                )
             )
-        )
+        }
     }
     
     private func fetchTracksAndStartGame() {
@@ -141,5 +149,4 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environmentObject(SpotifyService.shared)
-        .environmentObject(GameService(spotifyService: SpotifyService.shared))
 } 

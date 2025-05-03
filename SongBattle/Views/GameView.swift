@@ -1,13 +1,14 @@
 import SwiftUI
 
 struct GameView: View {
+    @EnvironmentObject var gameService: GameService
     @StateObject private var viewModel: GameViewModel
     @State private var showingScoreSheet = false
     @State private var showingAddTeam = false
     @State private var showingCategorySelection = false
     
-    init(gameService: GameService) {
-        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: gameService))
+    init() {
+        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: GameService.shared))
     }
     
     var body: some View {
@@ -252,5 +253,5 @@ struct SongDisplayView: View {
 }
 
 #Preview {
-    GameView(gameService: GameService(spotifyService: SpotifyService.shared))
+    GameView()
 } 

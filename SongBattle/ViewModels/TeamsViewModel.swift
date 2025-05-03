@@ -4,7 +4,7 @@ import SwiftUI
 @MainActor
 final class TeamsViewModel: ObservableObject {
     @Published var teamName: String = ""
-    private let gameService: GameService
+    let gameService: GameService
     @Published private(set) var teams: [Team] = []
     
     init(gameService: GameService) {
