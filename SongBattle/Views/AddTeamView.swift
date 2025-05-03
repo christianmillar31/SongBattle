@@ -12,8 +12,10 @@ struct AddTeamView: View {
                     .padding()
                 
                 Button(action: {
-                    viewModel.addTeam()
-                    dismiss()
+                    Task {
+                        await viewModel.addTeam()
+                        dismiss()
+                    }
                 }) {
                     Text("Add Team")
                         .font(.headline)

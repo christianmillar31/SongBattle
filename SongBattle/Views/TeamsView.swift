@@ -1,33 +1,5 @@
 import SwiftUI
 
-@MainActor
-class TeamsViewModel: ObservableObject {
-    @Published var teams: [Team] = []
-    private var gameService: GameService
-    
-    init(gameService: GameService) {
-        self.gameService = gameService
-        // Initialize teams from gameService
-        self.teams = gameService.teams
-    }
-    
-    func addTeam(name: String) {
-        let newTeam = Team(id: UUID().uuidString, name: name)
-        teams.append(newTeam)
-        updateGameServiceTeams()
-    }
-    
-    func deleteTeam(at offsets: IndexSet) {
-        teams.remove(atOffsets: offsets)
-        updateGameServiceTeams()
-    }
-    
-    private func updateGameServiceTeams() {
-        // Since we're already on MainActor, no need for async/await
-        gameService.teams = teams
-    }
-}
-
 struct TeamsView: View {
     @StateObject private var viewModel: TeamsViewModel
     @State private var showingAddTeam = false
@@ -37,22 +9,27 @@ struct TeamsView: View {
     }
     
     var body: some View {
-        NavigationView {
-            List {
-                ForEach(viewModel.teams) { team in
-                    TeamRow(team: team)
-                }
-                .onDelete(perform: viewModel.deleteTeam)
+        List {
+            ForEach(viewModel.teams) { team in
+                TeamRow(team: team)
             }
-            .navigationTitle("Teams")
-            .toolbar {
-                Button(action: { showingAddTeam = true }) {
-                    Image(systemName: "plus")
+            .onDelete { indexSet in
+                Task {
+                    for index in indexSet {
+                        await viewModel.removeTeam(viewModel.teams[index])
+                    }
                 }
             }
-            .sheet(isPresented: $showingAddTeam) {
-                AddTeamView(viewModel: viewModel)
+            
+            Button(action: { showingAddTeam = true }) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add Team")
+                }
             }
+        }
+        .sheet(isPresented: $showingAddTeam) {
+            AddTeamView(viewModel: viewModel)
         }
     }
 }
@@ -64,33 +41,6 @@ struct TeamRow: View {
         HStack {
             Text(team.name)
             Spacer()
-            Text("Score: \(team.score)")
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
-struct AddTeamView: View {
-    @Environment(\.dismiss) var dismiss
-    @ObservedObject var viewModel: TeamsViewModel
-    @State private var teamName = ""
-    
-    var body: some View {
-        NavigationView {
-            Form {
-                TextField("Team Name", text: $teamName)
-            }
-            .navigationTitle("Add Team")
-            .navigationBarItems(
-                leading: Button("Cancel") {
-                    dismiss()
-                },
-                trailing: Button("Save") {
-                    viewModel.addTeam(name: teamName)
-                    dismiss()
-                }
-                .disabled(teamName.isEmpty)
-            )
         }
     }
 }
@@ -98,5 +48,7 @@ struct AddTeamView: View {
 struct TeamsView_Previews: PreviewProvider {
     static var previews: some View {
         TeamsView(gameService: GameService(spotifyService: SpotifyService.shared))
+            .environmentObject(GameService(spotifyService: SpotifyService.shared))
     }
-} 
+}
+

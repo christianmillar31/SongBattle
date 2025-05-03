@@ -1,110 +1,78 @@
 import SwiftUI
 
 struct CategorySelectionView: View {
+    @ObservedObject var viewModel: CategorySelectionViewModel
     @Environment(\.dismiss) var dismiss
-    @StateObject var viewModel: CategorySelectionViewModel
+    
+    init(gameService: GameService) {
+        self.viewModel = CategorySelectionViewModel(gameService: gameService)
+    }
     
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Genres Section
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Genres")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 10) {
-                            ForEach(viewModel.genres) { category in
-                                CategoryButton(
-                                    category: category,
-                                    isSelected: viewModel.isSelected(category),
-                                    action: {
-                                        Task {
-                                            await viewModel.toggleCategory(category)
-                                        }
-                                    }
-                                )
+            List {
+                Section(header: Text("Decades")) {
+                    ForEach(viewModel.decades) { category in
+                        CategoryToggleRow(
+                            category: category,
+                            isSelected: viewModel.isSelected(category),
+                            action: { 
+                                Task {
+                                    await viewModel.toggleCategory(category)
+                                }
                             }
-                        }
+                        )
                     }
-                    .padding()
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(15)
-                    
-                    // Decades Section
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Decades")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                        
-                        LazyVGrid(columns: [
-                            GridItem(.flexible()),
-                            GridItem(.flexible())
-                        ], spacing: 10) {
-                            ForEach(viewModel.decades) { category in
-                                CategoryButton(
-                                    category: category,
-                                    isSelected: viewModel.isSelected(category),
-                                    action: {
-                                        Task {
-                                            await viewModel.toggleCategory(category)
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color.black.opacity(0.3))
-                    .cornerRadius(15)
-                    
-                    // Clear Selection Button
-                    Button(action: {
-                        Task {
-                            await viewModel.clearCategories()
-                        }
-                    }) {
-                        Text("Clear Selection")
-                            .foregroundColor(.white)
-                            .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(Color.red.opacity(0.3))
-                            .cornerRadius(10)
-                    }
-                    .padding(.top)
                 }
-                .padding()
+                
+                Section(header: Text("Genres")) {
+                    ForEach(viewModel.genres) { category in
+                        CategoryToggleRow(
+                            category: category,
+                            isSelected: viewModel.isSelected(category),
+                            action: { 
+                                Task {
+                                    await viewModel.toggleCategory(category)
+                                }
+                            }
+                        )
+                    }
+                }
             }
-            .navigationTitle("Select Categories")
+            .navigationTitle("Music Categories")
             .navigationBarItems(
                 leading: Button("Cancel") {
                     dismiss()
                 },
-                trailing: Button("Done") {
-                    dismiss()
+                trailing: Button("Clear All") {
+                    Task {
+                        await viewModel.clearCategories()
+                    }
                 }
             )
         }
     }
 }
 
-struct CategoryButton: View {
+struct CategoryToggleRow: View {
     let category: MusicCategory
     let isSelected: Bool
-    let action: () -> Void
+    let action: () async -> Void
     
     var body: some View {
-        Button(action: action) {
-            Text(category.name)
-                .foregroundColor(.white)
-                .padding()
-                .frame(maxWidth: .infinity)
-                .background(isSelected ? Color.theme.accent : Color.theme.accent.opacity(0.3))
-                .cornerRadius(10)
+        Button(action: {
+            Task {
+                await action()
+            }
+        }) {
+            HStack {
+                Text(category.name)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundColor(.blue)
+                }
+            }
         }
     }
 } 

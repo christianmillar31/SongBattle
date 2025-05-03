@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @ObservedObject var spotifyService: SpotifyService
+    @EnvironmentObject var spotifyService: SpotifyService
     @State private var showingSpotifyLogin = false
     
     var body: some View {
@@ -17,12 +17,20 @@ struct SettingsView: View {
                             }
                             .foregroundColor(.red)
                         }
+                    } else if spotifyService.isConnecting {
+                        HStack {
+                            Text("Connecting...")
+                            Spacer()
+                            ProgressView()
+                        }
                     } else {
                         Button("Connect to Spotify") {
-                            spotifyService.connect()
+                            Task {
+                                spotifyService.connect()
+                            }
                         }
                         
-                        if let error = spotifyService.authenticationError {
+                        if let error = spotifyService.error ?? spotifyService.authenticationError {
                             Text(error.localizedDescription)
                                 .foregroundColor(.red)
                                 .font(.caption)
@@ -52,6 +60,7 @@ struct SettingsView: View {
 
 struct SettingsView_Previews: PreviewProvider {
     static var previews: some View {
-        SettingsView(spotifyService: SpotifyService.shared)
+        SettingsView()
+            .environmentObject(SpotifyService.shared)
     }
 } 

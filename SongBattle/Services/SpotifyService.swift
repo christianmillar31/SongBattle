@@ -72,6 +72,11 @@ enum SpotifyError: LocalizedError, Equatable {
 class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPTAppRemoteDelegate, SPTAppRemotePlayerStateDelegate {
     static let shared = SpotifyService()
     
+    // MARK: - Constants
+    private let clientID = "c4788e07ffa548f78f8101af9c8aa0c5"
+    private let redirectURL = URL(string: "songbattle://spotify-callback")!
+    private let trackType = "default-tracks"  // Spotify's content type for recommended tracks
+    
     @Published var isConnecting = false
     @Published var error: Error?
     @Published var isPlaying = false
@@ -110,7 +115,6 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     // Add property to track play attempts
     private var playAttempt = 0
     private let maxPlayAttempts = 3
-    private let trackType = "tracks"  // SPTAppRemoteRecommendedContentTypeTrack constant value
     
     private var playerState: SPTAppRemotePlayerState?
     private var cancellables = Set<AnyCancellable>()
@@ -235,7 +239,30 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             return
         }
         
+        // Check if Spotify app is installed
+        guard UIApplication.shared.canOpenURL(URL(string: "spotify:")!) else {
+            print("DEBUG: ❌ Spotify app not installed")
+            self.error = SpotifyError.connectionFailed("Spotify app not installed")
+            return
+        }
+        
         isConnecting = true
+        
+        // Always clear stored token if we have an auth error
+        if let currentError = error as NSError?,
+           (currentError.domain == "com.spotify.app-remote.wamp-client" && currentError.code == -1001) ||
+           (currentError.domain == "com.spotify.app-remote" && currentError.code == -1000) {
+            print("DEBUG: 🔄 Clearing invalid token")
+            accessToken = nil
+            UserDefaults.standard.removeObject(forKey: "spotify_access_token")
+            self.error = nil
+            appRemote?.disconnect()
+            cleanup()
+        }
+        
+        // Reset connection state
+        isConnected = false
+        connectionRetryCount = 0
         
         if accessToken == nil {
             print("DEBUG: 🔑 No access token, initiating new session with PKCE")
@@ -267,10 +294,12 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     
     private func cleanup() {
         print("DEBUG: Cleaning up Spotify resources")
+        connectionTimer?.invalidate()
+        connectionTimer = nil
         if !isInAuthFlow {
             print("DEBUG: Fully cleaning up Spotify instances")
-            // Don't nil out the sessionManager during cleanup to maintain auth state
             appRemote = nil
+            setupSpotifyIfNeeded() // Recreate clean instances
             print("DEBUG: Spotify cleaned up")
         } else {
             print("DEBUG: In auth flow, keeping instances")
@@ -357,37 +386,49 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         return allTracks.randomElement()
     }
     
-    private func getTracksForCategory(_ category: MusicCategory) async throws -> [Track]? {
-        let cacheKey = category.id
-        
+    func getTracksForCategory(_ category: MusicCategory, difficulty: String? = nil) async throws -> [Track]? {
+        let cacheKey = category.id + (difficulty ?? "")
         // Check cache first
         if let cachedTracks = categoryCache[cacheKey],
            let lastFetch = lastFetchTime[cacheKey],
            Date().timeIntervalSince(lastFetch) < cacheDuration {
             return cachedTracks
         }
-        
-        // Build search query based on category type
-        var query = ""
+        // Build search parameters
+        var genre: String? = nil
+        var year: String? = nil
         switch category.type {
         case .genre:
-            query = "genre:\(category.id)"
+            genre = category.id
         case .decade:
-            // Convert decade to year range (e.g., "2020s" -> "2020-2029")
+            // Convert decade to year range (e.g., "1960s" -> "1960-1969")
             let startYear = Int(category.id.prefix(4)) ?? 2020
-            query = "year:\(startYear)-\(startYear + 9)"
+            year = "\(startYear)-\(startYear + 9)"
         }
-        
-        // Add additional filters to get popular songs
-        query += " tag:popular"
-        
-        // Fetch tracks from Spotify
-        let tracks = try await searchTracks(query: query)
-        
+        // Map difficulty to popularity
+        var minPopularity: Int? = nil
+        var maxPopularity: Int? = nil
+        if let difficulty = difficulty?.lowercased() {
+            switch difficulty {
+            case "easy":
+                minPopularity = 60
+                maxPopularity = 100
+            case "medium":
+                minPopularity = 30
+                maxPopularity = 59
+            case "hard":
+                minPopularity = 0
+                maxPopularity = 29
+            default:
+                break
+            }
+        }
+        print("DEBUG: Fetching tracks for category: \(category.id), genre: \(genre ?? "nil"), year: \(year ?? "nil"), difficulty: \(difficulty ?? "nil")")
+        // Fetch tracks from Spotify Web API
+        let tracks = try await searchTracksWebAPI(query: "", genre: genre, year: year, minPopularity: minPopularity, maxPopularity: maxPopularity, limit: 20)
         // Update cache
         categoryCache[cacheKey] = tracks
         lastFetchTime[cacheKey] = Date()
-        
         return tracks
     }
     
@@ -401,36 +442,106 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         guard let appRemote = appRemote, appRemote.isConnected else {
             throw SpotifyError.notConnected
         }
-        
+
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<[Track], Error>) in
-            appRemote.contentAPI?.fetchRecommendedContentItems(forType: "track", flattenContainers: true) { [weak self] (result: Any?, error: Error?) in
-            if let error = error {
-                    continuation.resume(throwing: error)
-                return
-            }
-            
-                guard let items = result as? [SPTAppRemoteTrack] else {
-                    continuation.resume(throwing: SpotifyError.searchFailed)
-                    return
-                }
-                
-                let tracks = items.compactMap { track -> Track? in
-                    guard !track.isPodcast && !track.isEpisode && !track.isAdvertisement else {
-                    return nil
-                }
-                    return Track(
-                        id: track.uri,
-                        name: track.name,
-                        artist: track.artist.name,
-                        uri: track.uri,
-                    previewUrl: nil,
-                    albumArtUrl: nil
-                )
-                }
-                
-                continuation.resume(returning: tracks)
+            // If query contains a genre or category, use search
+            if query.contains("genre:") || query.contains("year:") {
+                print("DEBUG: Using search for category-based query: \(query)")
+                appRemote.contentAPI?.fetchRecommendedContentItems(forType: "search", flattenContainers: true) { (result: Any?, error: Error?) in
+                    if let error = error {
+                        print("DEBUG: Error fetching search results: \(error)")
+                        continuation.resume(throwing: SpotifyError.searchFailed)
+                        return
+                    }
+
+                    guard let items = result as? [SPTAppRemoteTrack] else {
+                        print("DEBUG: Invalid search results type")
+                        continuation.resume(throwing: SpotifyError.searchFailed)
+                        return
+                    }
+
+                    let tracks = items.compactMap { track -> Track? in
+                        guard !track.isPodcast && !track.isEpisode && !track.isAdvertisement else {
+                            print("DEBUG: Skipping non-music content")
+                            return nil
+                        }
+
+                        return Track(
+                            id: track.uri,
+                            name: track.name,
+                            artist: track.artist.name,
+                            uri: track.uri,
+                            previewUrl: nil,
+                            albumArtUrl: nil
+                        )
+                    }
+
+                    if tracks.isEmpty {
+                        print("DEBUG: No valid tracks found in search results")
+                        continuation.resume(throwing: SpotifyError.searchFailed)
+                    } else {
+                        print("DEBUG: Successfully found \(tracks.count) tracks from search")
+                        continuation.resume(returning: tracks)
                     }
                 }
+            } else {
+                // For general random songs, use a curated playlist
+                print("DEBUG: Using playlist for general random songs")
+                // Step 1: Fetch root playlists
+                appRemote.contentAPI?.fetchRecommendedContentItems(forType: "default", flattenContainers: false) { (result: Any?, error: Error?) in
+                    if let error = error {
+                        print("DEBUG: Error fetching root playlists: \(error)")
+                        continuation.resume(throwing: SpotifyError.searchFailed)
+                        return
+                    }
+                    guard let items = result as? [SPTAppRemoteContentItem] else {
+                        print("DEBUG: Invalid result type from fetchRecommendedContentItems")
+                        continuation.resume(throwing: SpotifyError.searchFailed)
+                        return
+                    }
+                    // Step 2: Find 'Today's Top Hits' playlist
+                    guard let playlistItem = items.first(where: { $0.title == "Today's Top Hits" }) else {
+                        print("DEBUG: Could not find 'Today's Top Hits' playlist in root items")
+                        continuation.resume(throwing: SpotifyError.searchFailed)
+                        return
+                    }
+                    // Step 3: Fetch tracks from the playlist
+                    appRemote.contentAPI?.fetchChildren(of: playlistItem, callback: { (result: Any?, error: Error?) in
+                        if let error = error {
+                            print("DEBUG: Error fetching playlist tracks: \(error)")
+                            continuation.resume(throwing: SpotifyError.searchFailed)
+                            return
+                        }
+                        guard let trackItems = result as? [SPTAppRemoteTrack] else {
+                            print("DEBUG: Invalid tracks array type")
+                            continuation.resume(throwing: SpotifyError.searchFailed)
+                            return
+                        }
+                        let tracks = trackItems.compactMap { track -> Track? in
+                            guard !track.isPodcast && !track.isEpisode && !track.isAdvertisement else {
+                                print("DEBUG: Skipping non-music content")
+                                return nil
+                            }
+                            return Track(
+                                id: track.uri,
+                                name: track.name,
+                                artist: track.artist.name,
+                                uri: track.uri,
+                                previewUrl: nil,
+                                albumArtUrl: nil
+                            )
+                        }
+                        if tracks.isEmpty {
+                            print("DEBUG: No valid tracks found in playlist")
+                            continuation.resume(throwing: SpotifyError.searchFailed)
+                        } else {
+                            print("DEBUG: Successfully found \(tracks.count) tracks from playlist")
+                            continuation.resume(returning: tracks)
+                        }
+                    })
+                }
+            }
+        }
     }
     
     func play(track: Track) async {
@@ -557,14 +668,13 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     nonisolated func appRemoteDidEstablishConnection(_ appRemote: SPTAppRemote) {
         Task { @MainActor in
             print("DEBUG: App remote connection established")
-            self.appRemote = appRemote
-            self.appRemote?.playerAPI?.delegate = self
-            self.appRemote?.playerAPI?.subscribe { [weak self] (_, error) in
+            appRemote.playerAPI?.delegate = self
+            appRemote.playerAPI?.subscribe { [weak self] (_, error) in
                 Task { @MainActor in
-            if let error = error {
+                    if let error = error {
                         print("DEBUG: Error subscribing to player state: \(error)")
-                } else {
-                    print("DEBUG: Successfully subscribed to player state")
+                    } else {
+                        print("DEBUG: Successfully subscribed to player state")
                         self?.isConnected = true
                         self?.isConnecting = false
                     }
@@ -587,9 +697,30 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         Task { @MainActor in
             print("DEBUG: App remote connection attempt failed: \(String(describing: error))")
             isConnecting = false
-            if let error = error {
+            
+            if let error = error as NSError? {
                 self.error = error
+                
+                // Check if it's an auth error
+                if error.domain == "com.spotify.app-remote.wamp-client" && error.code == -1001 {
+                    print("DEBUG: Auth error detected, initiating new auth flow")
+                    accessToken = nil
+                    UserDefaults.standard.removeObject(forKey: "spotify_access_token")
+                    isInAuthFlow = true
+                    let scope: SPTScope = [.appRemoteControl, .streaming, .userReadEmail, .playlistReadPrivate, .userLibraryRead, .userTopRead]
+                    sessionManager?.initiateSession(with: scope, options: .clientOnly, campaign: "songsmash_login")
+                } else if connectionRetryCount < maxConnectionRetries {
+                    // For other errors, try reconnecting
+                    connectionRetryCount += 1
+                    print("DEBUG: Retrying connection (attempt \(connectionRetryCount))")
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                        self.connect()
+                    }
+                } else {
+                    print("DEBUG: Max retries reached")
+                    cleanup()
                 }
+            }
         }
     }
     
@@ -647,5 +778,53 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
             previewUrl: nil,
             albumArtUrl: nil
         )
+    }
+    
+    /// Search tracks using the Spotify Web API with support for genre, decade, and difficulty (popularity)
+    func searchTracksWebAPI(query: String = "", genre: String? = nil, year: String? = nil, minPopularity: Int? = nil, maxPopularity: Int? = nil, limit: Int = 20) async throws -> [Track] {
+        guard let accessToken = self.accessToken else {
+            throw SpotifyError.authenticationError("No access token")
+        }
+        var urlString = "https://api.spotify.com/v1/search?q="
+        var queryItems: [String] = []
+        if let genre = genre, !genre.isEmpty {
+            queryItems.append("genre:\"\(genre)\"")
+        }
+        if let year = year, !year.isEmpty {
+            queryItems.append("year:\(year)")
+        }
+        if !query.isEmpty {
+            queryItems.append(query)
+        }
+        urlString += queryItems.joined(separator: " ")
+        urlString += "&type=track&limit=\(limit)"
+        guard let url = URL(string: urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)!) else {
+            throw SpotifyError.searchFailed
+        }
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw SpotifyError.searchFailed
+        }
+        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let tracksDict = json?["tracks"] as? [String: Any], let items = tracksDict["items"] as? [[String: Any]] else {
+            throw SpotifyError.searchFailed
+        }
+        var tracks: [Track] = items.compactMap { item in
+            guard let id = item["id"] as? String,
+                  let name = item["name"] as? String,
+                  let artists = item["artists"] as? [[String: Any]],
+                  let artistName = artists.first?["name"] as? String,
+                  let uri = item["uri"] as? String,
+                  let popularity = item["popularity"] as? Int else { return nil }
+            // Filter by popularity if needed
+            if let minPopularity = minPopularity, popularity < minPopularity { return nil }
+            if let maxPopularity = maxPopularity, popularity > maxPopularity { return nil }
+            return Track(id: id, name: name, artist: artistName, uri: uri, previewUrl: nil, albumArtUrl: nil)
+        }
+        // Shuffle tracks for randomness
+        tracks.shuffle()
+        return tracks
     }
 } 

@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct GameView: View {
-    @EnvironmentObject var gameService: GameService
+    @StateObject private var viewModel: GameViewModel
     @State private var showingScoreSheet = false
     @State private var showingAddTeam = false
     @State private var showingCategorySelection = false
-    @State private var isLoading = true
+    
+    init(gameService: GameService) {
+        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: gameService))
+    }
     
     var body: some View {
         NavigationView {
@@ -19,16 +22,11 @@ struct GameView: View {
                 .ignoresSafeArea()
                 
                 VStack {
-                    if isLoading {
+                    if viewModel.isLoading {
                         ProgressView("Loading...")
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    isLoading = false
-                                }
-                            }
-                    } else if gameService.gameState == .notStarted {
+                    } else if viewModel.gameState == .notStarted {
                         startGameView
-                    } else if gameService.gameState == .inProgress {
+                    } else if viewModel.gameState == .inProgress {
                         gameInProgressView
                     } else {
                         gameFinishedView
@@ -54,14 +52,14 @@ struct GameView: View {
                     .font(.headline)
                     .foregroundColor(.white)
                 
-                ForEach(gameService.teams) { team in
+                ForEach(viewModel.teams) { team in
                     HStack {
                         Text(team.name)
                             .foregroundColor(.white)
                         Spacer()
                         Button(action: {
-                            if let index = gameService.teams.firstIndex(where: { $0.id == team.id }) {
-                                gameService.teams.remove(at: index)
+                            Task {
+                                await viewModel.removeTeam(team)
                             }
                         }) {
                             Image(systemName: "minus.circle.fill")
@@ -71,9 +69,7 @@ struct GameView: View {
                     .padding(.horizontal)
                 }
                 
-                Button(action: {
-                    showingAddTeam = true
-                }) {
+                Button(action: { showingAddTeam = true }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Team")
@@ -98,9 +94,7 @@ struct GameView: View {
                         .font(.headline)
                         .foregroundColor(.white)
                     Spacer()
-                    Button(action: {
-                        showingCategorySelection = true
-                    }) {
+                    Button(action: { showingCategorySelection = true }) {
                         Text("Select")
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -110,14 +104,14 @@ struct GameView: View {
                     }
                 }
                 
-                if gameService.selectedCategories.isEmpty {
+                if viewModel.selectedCategories.isEmpty {
                     Text("No categories selected - all music will be included")
                         .foregroundColor(.white.opacity(0.8))
                         .font(.subheadline)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
-                            ForEach(Array(gameService.selectedCategories)) { category in
+                            ForEach(Array(viewModel.selectedCategories)) { category in
                                 Text(category.name)
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 12)
@@ -135,9 +129,11 @@ struct GameView: View {
                     .fill(Color.black.opacity(0.3))
             )
             
-            if gameService.teams.count >= 2 {
+            if viewModel.canStartGame {
                 Button(action: {
-                    gameService.startGame()
+                    Task {
+                        await viewModel.startGame()
+                    }
                 }) {
                     Text("Start Game")
                         .font(.headline)
@@ -155,19 +151,19 @@ struct GameView: View {
         }
         .padding()
         .sheet(isPresented: $showingAddTeam) {
-            AddTeamView(viewModel: TeamsViewModel(gameService: gameService))
+            AddTeamView(viewModel: TeamsViewModel(gameService: viewModel.gameService))
         }
         .sheet(isPresented: $showingCategorySelection) {
-            CategorySelectionView(gameService: gameService)
+            CategorySelectionView(gameService: viewModel.gameService)
         }
     }
     
     private var gameInProgressView: some View {
         VStack {
-            if let round = gameService.currentRound {
+            if let round = viewModel.currentRound {
                 VStack(spacing: 20) {
                     if let song = round.song {
-                        SongDisplayView(song: song, isPlaying: gameService.spotifyService.isPlaying)
+                        SongDisplayView(song: song, isPlaying: viewModel.isPlaying)
                             .padding()
                             .background(
                                 RoundedRectangle(cornerRadius: 20)
@@ -181,9 +177,7 @@ struct GameView: View {
                     
                     Spacer()
                     
-                    Button(action: {
-                        showingScoreSheet = true
-                    }) {
+                    Button(action: { showingScoreSheet = true }) {
                         Text("Submit Scores")
                             .font(.headline)
                             .foregroundColor(.white)
@@ -197,10 +191,7 @@ struct GameView: View {
             }
         }
         .sheet(isPresented: $showingScoreSheet) {
-            ScoreSheetView(
-                gameService: gameService,
-                spotifyService: gameService.spotifyService
-            )
+            ScoreSheetView(viewModel: ScoreSheetViewModel(gameService: viewModel.gameService, spotifyService: viewModel.spotifyService))
         }
     }
     
@@ -208,30 +199,29 @@ struct GameView: View {
         VStack(spacing: 20) {
             Text("Game Over!")
                 .font(.title)
-                .padding()
+                .foregroundColor(.white)
             
-            List(gameService.teams.sorted { $0.score > $1.score }) { team in
-                HStack {
-                    Text(team.name)
-                    Spacer()
-                    Text("\(team.score) points")
-                        .foregroundColor(.blue)
-                }
+            ForEach(viewModel.sortedTeams) { team in
+                Text("\(team.name): \(team.score) points")
+                    .foregroundColor(.white)
             }
             
             Button(action: {
-                gameService.startGame()
+                Task {
+                    await viewModel.startNewGame()
+                }
             }) {
-                Text("Play Again")
+                Text("Start New Game")
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color.blue)
+                    .background(Color.theme.accent)
                     .cornerRadius(10)
             }
             .padding()
         }
+        .padding()
     }
 }
 
@@ -266,11 +256,6 @@ struct SongDisplayView: View {
     }
 }
 
-struct GameView_Previews: PreviewProvider {
-    static var previews: some View {
-        let spotifyService = SpotifyService.shared
-        let gameService = GameService(spotifyService: spotifyService)
-        GameView()
-            .environmentObject(gameService)
-    }
+#Preview {
+    GameView(gameService: GameService(spotifyService: SpotifyService.shared))
 } 

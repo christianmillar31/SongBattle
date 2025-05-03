@@ -1,68 +1,78 @@
 import SwiftUI
 
 struct ScoreSheetView: View {
-    let gameService: GameService
-    let spotifyService: SpotifyService
     @Environment(\.presentationMode) var presentationMode
-    
-    // Create two arrays that match the number of teams
-    @State private var titleToggles: [Bool]
-    @State private var artistToggles: [Bool]
-    
-    init(gameService: GameService, spotifyService: SpotifyService) {
-        self.gameService = gameService
-        self.spotifyService = spotifyService
-        // Initialize the toggle arrays with the correct count
-        _titleToggles = State(initialValue: Array(repeating: false, count: 2))
-        _artistToggles = State(initialValue: Array(repeating: false, count: 2))
-    }
+    @ObservedObject var viewModel: ScoreSheetViewModel
     
     var body: some View {
-        NavigationView {
-            Form {
-                if gameService.teams.count >= 2 {
-                    ForEach(Array(gameService.teams.enumerated()), id: \.element.id) { idx, team in
-                        Section(header: Text(team.name)) {
-                            Toggle("Got Title", isOn: binding(for: $titleToggles, at: idx))
-                            Toggle("Got Artist", isOn: binding(for: $artistToggles, at: idx))
-                        }
-                    }
-                    
-                    Button("Next Song") {
-                        // Award points safely using the toggle arrays
-                        gameService.submitScores(
-                            team1Title: titleToggles[0],
-                            team1Artist: artistToggles[0],
-                            team2Title: titleToggles[1],
-                            team2Artist: artistToggles[1]
-                        )
-                        gameService.startNewRound()
+        VStack(spacing: 20) {
+            if let currentSong = viewModel.currentSong {
+                Text("Current Song")
+                    .font(.headline)
+                Text(currentSong.name)
+                    .font(.title)
+                Text(currentSong.artist)
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+            
+            Divider()
+            
+            if let team1 = viewModel.team1, let team2 = viewModel.team2 {
+                TeamScoreSection(
+                    teamName: team1.name,
+                    titleToggle: $viewModel.team1Title,
+                    artistToggle: $viewModel.team1Artist
+                )
+                
+                TeamScoreSection(
+                    teamName: team2.name,
+                    titleToggle: $viewModel.team2Title,
+                    artistToggle: $viewModel.team2Artist
+                )
+                
+                Button(action: {
+                    Task {
+                        await viewModel.submitScores()
+                        await viewModel.gameService.startNewRound()
                         presentationMode.wrappedValue.dismiss()
                     }
-                } else {
-                    Text("At least 2 teams are required to play")
-                        .foregroundColor(.secondary)
+                }) {
+                    Text("Submit Scores")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.blue)
+                        .cornerRadius(10)
                 }
+                .padding()
+            } else {
+                Text("At least 2 teams are required to play")
+                    .foregroundColor(.red)
             }
-            .navigationTitle("Submit Scores")
-            .navigationBarItems(trailing: Button("Cancel") {
-                presentationMode.wrappedValue.dismiss()
-            })
         }
+        .padding()
     }
+}
+
+struct TeamScoreSection: View {
+    let teamName: String
+    @Binding var titleToggle: Bool
+    @Binding var artistToggle: Bool
     
-    // Helper function to create safe bindings for toggle arrays
-    private func binding(for array: Binding<[Bool]>, at index: Int) -> Binding<Bool> {
-        Binding(
-            get: {
-                guard index < array.wrappedValue.count else { return false }
-                return array.wrappedValue[index]
-            },
-            set: { newValue in
-                guard index < array.wrappedValue.count else { return }
-                array.wrappedValue[index] = newValue
-            }
-        )
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(teamName)
+                .font(.headline)
+            
+            Toggle("Correct Title", isOn: $titleToggle)
+            Toggle("Correct Artist", isOn: $artistToggle)
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(radius: 2)
     }
 }
 
@@ -70,7 +80,8 @@ struct ScoreSheetView: View {
     let spotifyService = SpotifyService.shared
     let gameService = GameService(spotifyService: spotifyService)
     ScoreSheetView(
-        gameService: gameService,
-        spotifyService: spotifyService
+        viewModel: ScoreSheetViewModel(gameService: gameService, spotifyService: spotifyService)
     )
+        .environmentObject(spotifyService)
+        .environmentObject(gameService)
 } 

@@ -4,12 +4,14 @@ import SpotifyiOS
 @main
 struct SongBattleApp: App {
     @StateObject private var spotifyService = SpotifyService.shared
+    @StateObject private var gameService = GameService(spotifyService: SpotifyService.shared)
     @Environment(\.scenePhase) var phase
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(spotifyService)
+                .environmentObject(gameService)
                 .onAppear {
                     print("DEBUG: App appeared")
                 }

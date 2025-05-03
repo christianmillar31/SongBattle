@@ -1,14 +1,18 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var spotifyService = SpotifyService.shared
-    @StateObject private var gameService: GameService
+    @EnvironmentObject var spotifyService: SpotifyService
+    @EnvironmentObject var gameService: GameService
     @State private var isLoading = true
     @State private var showingSettings = false
-    
-    init() {
-        _gameService = StateObject(wrappedValue: GameService(spotifyService: SpotifyService.shared))
-    }
+    @State private var showSongSelection = false
+    @State private var isFetchingTracks = false
+    @State private var fetchError: String? = nil
+    @State private var fetchedTracks: [Track] = []
+    @State private var selectedGenre: String = "Pop"
+    @State private var selectedDecade: String = "2020s"
+    @State private var selectedDifficulty: String = "Easy"
+    @State private var isGameActive = false
     
     var body: some View {
         NavigationView {
@@ -23,17 +27,34 @@ struct ContentView: View {
                 
                 if isLoading {
                     LoadingView()
+                } else if isFetchingTracks {
+                    VStack {
+                        ProgressView("Fetching songs...")
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .foregroundColor(.white)
+                        if let fetchError = fetchError {
+                            Text(fetchError)
+                                .foregroundColor(.red)
+                                .padding()
+                        }
+                    }
+                } else if showSongSelection {
+                    SongSelectionView(onStart: { genre, decade, difficulty in
+                        selectedGenre = genre
+                        selectedDecade = decade
+                        selectedDifficulty = difficulty
+                        fetchTracksAndStartGame()
+                    })
                 } else {
                     VStack(spacing: 20) {
                         Text("SongSmash")
                             .font(.largeTitle.bold())
                             .foregroundColor(.white)
-                        
                         TeamsView(gameService: gameService)
                             .cardStyle()
-                            .environmentObject(gameService)
-                        
-                        NavigationLink(destination: GameView().environmentObject(gameService)) {
+                        Button(action: {
+                            showSongSelection = true
+                        }) {
                             Text("Start Game")
                                 .font(.title3.weight(.semibold))
                         }
@@ -41,10 +62,12 @@ struct ContentView: View {
                         .disabled(!spotifyService.isConnected || gameService.teams.count < 2)
                     }
                     .padding()
-                    .toolbar {
-                        Button(action: { showingSettings = true }) {
-                            Image(systemName: "gear")
-                        }
+                }
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingSettings = true }) {
+                        Image(systemName: "gear")
                     }
                 }
             }
@@ -60,9 +83,55 @@ struct ContentView: View {
                 }
             }
         }
+        .background(
+            NavigationLink(
+                destination: GameView(gameService: gameService),
+                isActive: $isGameActive,
+                label: { EmptyView() }
+            )
+        )
+    }
+    
+    private func fetchTracksAndStartGame() {
+        isFetchingTracks = true
+        fetchError = nil
+        fetchedTracks = []
+        print("DEBUG: Starting fetchTracksAndStartGame with genre: \(selectedGenre), decade: \(selectedDecade), difficulty: \(selectedDifficulty)")
+        Task {
+            do {
+                // Build a MusicCategory for the selected genre/decade
+                let category: MusicCategory
+                if selectedGenre != "" {
+                    category = MusicCategory(id: selectedGenre, name: selectedGenre, type: .genre)
+                } else {
+                    category = MusicCategory(id: selectedDecade, name: selectedDecade, type: .decade)
+                }
+                print("DEBUG: Created category: \(category)")
+                let tracks = try await spotifyService.getTracksForCategory(category, difficulty: selectedDifficulty)
+                print("DEBUG: getTracksForCategory returned \(tracks?.count ?? 0) tracks")
+                if let tracks = tracks, !tracks.isEmpty {
+                    fetchedTracks = tracks
+                    print("DEBUG: Setting tracks in gameService and proceeding to game view")
+                    gameService.setTracks(tracks)
+                    isFetchingTracks = false
+                    showSongSelection = false
+                    isGameActive = true
+                } else {
+                    fetchError = "No tracks found. Try a different selection."
+                    print("DEBUG: No tracks found for selection")
+                    isFetchingTracks = false
+                }
+            } catch {
+                fetchError = "Failed to fetch tracks: \(error.localizedDescription)"
+                print("DEBUG: Error in fetchTracksAndStartGame: \(error)")
+                isFetchingTracks = false
+            }
+        }
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(SpotifyService.shared)
+        .environmentObject(GameService(spotifyService: SpotifyService.shared))
 } 

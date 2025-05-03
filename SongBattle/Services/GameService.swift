@@ -2,14 +2,17 @@ import Foundation
 import Combine
 
 @MainActor
-class GameService: ObservableObject {
-    @Published var currentRound: Round?
-    @Published var teams: [Team] = []
-    @Published var gameState: GameState = .notStarted
+final class GameService: ObservableObject {
+    @Published private(set) var currentRound: Round?
+    @Published private(set) var teams: [Team] = []
+    @Published private(set) var gameState: GameState = .notStarted
     @Published var selectedCategories: Set<MusicCategory> = []
+    @Published var tracks: [Track] = []
     
-    var spotifyService: SpotifyService
+    private let _spotifyService: SpotifyService
     private var cancellables = Set<AnyCancellable>()
+    
+    var spotifyService: SpotifyService { _spotifyService }
     
     enum GameState {
         case notStarted
@@ -18,32 +21,60 @@ class GameService: ObservableObject {
     }
     
     init(spotifyService: SpotifyService) {
-        self.spotifyService = spotifyService
+        self._spotifyService = spotifyService
         setupSubscriptions()
     }
     
-    func updateSpotifyService(_ newService: SpotifyService) {
-        spotifyService = newService
-        cancellables.removeAll()
-        setupSubscriptions()
+    // MARK: - Team Management
+    func getTeams() -> [Team] {
+        teams
     }
     
-    func toggleCategory(_ category: MusicCategory) {
+    func appendTeam(_ team: Team) {
+        teams.append(team)
+        print("[GameService] Team added: \(team.name), total teams: \(teams.count)")
+        objectWillChange.send()
+    }
+    
+    func removeTeam(_ team: Team) {
+        if let index = teams.firstIndex(where: { $0.id == team.id }) {
+            teams.remove(at: index)
+            objectWillChange.send()
+        }
+    }
+    
+    // MARK: - Game Flow
+    func startGame() async {
+        guard teams.count >= 2 else { return }
+        gameState = .inProgress
+        await startNewRound()
+    }
+    
+    func endGame() {
+        gameState = .finished
+        currentRound = nil
+    }
+    
+    // MARK: - Category Management
+    func toggleCategory(_ category: MusicCategory) async {
         if selectedCategories.contains(category) {
             selectedCategories.remove(category)
         } else {
             selectedCategories.insert(category)
         }
+        objectWillChange.send()
     }
     
-    func clearCategories() {
+    func clearCategories() async {
         selectedCategories.removeAll()
+        objectWillChange.send()
     }
     
+    // MARK: - Private Methods
     private func setupSubscriptions() {
         // Observe connection state and current track
-        spotifyService.$isConnected
-            .combineLatest(spotifyService.$currentTrack)
+        _spotifyService.$isConnected
+            .combineLatest(_spotifyService.$currentTrack)
             .receive(on: RunLoop.main)
             .sink { [weak self] isConnected, track in
                 if isConnected, let track = track {
@@ -53,11 +84,10 @@ class GameService: ObservableObject {
             .store(in: &cancellables)
         
         // Observe playback failures
-        spotifyService.$error
+        _spotifyService.$error
             .receive(on: RunLoop.main)
             .sink { [weak self] error in
                 if error != nil {
-                    // Handle playback error - maybe restart round or show error
                     self?.handlePlaybackError()
                 }
             }
@@ -65,64 +95,56 @@ class GameService: ObservableObject {
     }
     
     private func handlePlaybackError() {
-        // If in a game, try to restart the round or show error
         if gameState == .inProgress {
-            startNewRound()
+            Task {
+                await startNewRound()
+            }
         }
     }
     
-    func startGame() {
-        guard teams.count >= 2 else { return }
-        gameState = .inProgress
-        startNewRound()
+    private func updateCurrentRound(with track: Track) {
+        if var round = currentRound {
+            round.song = track
+            currentRound = round
+        }
     }
     
-    func endGame() {
-        gameState = .finished
-        currentRound = nil
-    }
-    
-    func startNewRound() {
-        // Create new round first
+    func startNewRound() async {
         currentRound = Round(
             id: UUID(),
             song: nil,
             startTime: Date()
         )
         
-        // If we're not connected, wait for connection before playing
-        guard spotifyService.isConnected else {
+        guard _spotifyService.isConnected else {
             print("DEBUG: Not connected to Spotify, waiting for connection...")
-            // Subscribe for the next "became true" and then re-invoke
-            spotifyService.$isConnected
+            _spotifyService.$isConnected
                 .filter { $0 }
                 .prefix(1)
                 .sink { [weak self] _ in
                     print("DEBUG: Spotify connected, starting round...")
-                    self?.startNewRound()
+                    Task {
+                        await self?.startNewRound()
+                    }
                 }
                 .store(in: &cancellables)
             
-            // Kick off a connect (this will be back-off-safe)
-            spotifyService.connect()
+            _spotifyService.connect()
             return
         }
         
-        // Only play random song when we're actually connected
         print("DEBUG: Connected to Spotify, playing random song...")
         if !selectedCategories.isEmpty {
-            // Play a song from selected categories
-            spotifyService.playRandomSong(from: selectedCategories)
+            _spotifyService.playRandomSong(from: selectedCategories)
         } else {
-            // Play any random song
-            spotifyService.playRandomSong()
+            _spotifyService.playRandomSong()
         }
     }
     
     func submitScores(team1Title: Bool, team1Artist: Bool, team2Title: Bool, team2Artist: Bool) {
-        guard let song = currentRound?.song else { return }
+        guard let song = currentRound?.song, teams.count >= 2 else { return }
         
-        print("DEBUG: Scoring guesses for '\(song.name)' by \(song.artist)")
+        print("DEBUG: Scoring round for song '\(song.name)' by '\(song.artist)'")
         
         // Track scores for this round
         var team1Score = 0
@@ -132,40 +154,35 @@ class GameService: ObservableObject {
         if team1Title {
             teams[0].incrementScore()
             team1Score += 1
-            print("DEBUG: Team 1 correctly guessed the title")
+            print("DEBUG: Team '\(teams[0].name)' got the title '\(song.name)'")
         }
         if team1Artist {
             teams[0].incrementScore()
             team1Score += 1
-            print("DEBUG: Team 1 correctly guessed the artist")
+            print("DEBUG: Team '\(teams[0].name)' got the artist '\(song.artist)'")
         }
         
         // Award points to team 2
         if team2Title {
             teams[1].incrementScore()
             team2Score += 1
-            print("DEBUG: Team 2 correctly guessed the title")
+            print("DEBUG: Team '\(teams[1].name)' got the title '\(song.name)'")
         }
         if team2Artist {
             teams[1].incrementScore()
             team2Score += 1
-            print("DEBUG: Team 2 correctly guessed the artist")
+            print("DEBUG: Team '\(teams[1].name)' got the artist '\(song.artist)'")
         }
         
-        // Log round results
-        print("DEBUG: Round complete - Team 1: \(team1Score) points, Team 2: \(team2Score) points")
-        print("DEBUG: Total scores - Team 1: \(teams[0].score), Team 2: \(teams[1].score)")
+        print("DEBUG: Round complete - \(teams[0].name): \(team1Score) points, \(teams[1].name): \(team2Score) points")
+        print("DEBUG: Total scores - \(teams[0].name): \(teams[0].score), \(teams[1].name): \(teams[1].score)")
         
-        // Force UI update by reassigning teams array
         objectWillChange.send()
-        teams = teams
     }
     
-    private func updateCurrentRound(with track: Track) {
-        if var round = currentRound {
-            round.song = track
-            currentRound = round
-        }
+    func setTracks(_ tracks: [Track]) {
+        self.tracks = tracks
+        objectWillChange.send()
     }
 }
 
