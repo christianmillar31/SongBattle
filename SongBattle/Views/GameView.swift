@@ -11,31 +11,26 @@ struct GameView: View {
     }
     
     var body: some View {
-        NavigationView {
-            ZStack {
-                // Background gradient
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.theme.gradientStart, Color.theme.gradientEnd]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-                
-                VStack {
-                    if viewModel.isLoading {
-                        ProgressView("Loading...")
-                    } else if viewModel.gameState == .notStarted {
-                        startGameView
-                    } else if viewModel.gameState == .inProgress {
-                        gameInProgressView
-                    } else {
-                        gameFinishedView
-                    }
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                gradient: Gradient(colors: [Color.theme.gradientStart, Color.theme.gradientEnd]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack {
+                if viewModel.isLoading {
+                    ProgressView("Loading...")
+                } else if viewModel.gameState == .notStarted {
+                    startGameView
+                } else if viewModel.gameState == .inProgress {
+                    gameInProgressView
+                } else {
+                    gameFinishedView
                 }
             }
-            .navigationTitle("SongSmash")
-            .navigationBarTitleDisplayMode(.inline)
-            .foregroundColor(.white)
         }
     }
     

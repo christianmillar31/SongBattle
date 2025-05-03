@@ -168,10 +168,31 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
         }
     }
     
-    private func handleConnectionFailure(_ error: Error?) {
-        print("DEBUG: Connection failed with error: \(String(describing: error))")
-        self.error = error
-        retryConnection()
+    private func handleConnectionError(_ error: Error) {
+        print("DEBUG: Connection error: \(error.localizedDescription)")
+        let nsError = error as NSError
+        if nsError.domain == "com.spotify.app-remote.wamp-client" && nsError.code == -1001 {
+            // Only clear token on true auth error
+            print("DEBUG: Auth error detected, clearing token and reauthenticating")
+            accessToken = nil
+            UserDefaults.standard.removeObject(forKey: "spotify_access_token")
+            isInAuthFlow = true
+            let scope: SPTScope = [.appRemoteControl, .streaming, .userReadEmail, .playlistReadPrivate, .userLibraryRead, .userTopRead]
+            sessionManager?.initiateSession(with: scope, options: .clientOnly, campaign: "songsmash_login")
+        } else if nsError.domain == "com.spotify.app-remote.transport" && nsError.code == -2001 {
+            // End of stream: just try to reconnect, do not clear token
+            print("DEBUG: End of stream detected, attempting to reconnect after delay...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.connect()
+            }
+        } else {
+            // For other errors, just show error and try to reconnect, do not clear token
+            print("DEBUG: Non-auth connection error, attempting normal retry")
+            self.error = SpotifyError.connectionFailed(error.localizedDescription)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                self?.connect()
+            }
+        }
     }
     
     private func setupSpotifyIfNeeded() {
@@ -320,36 +341,6 @@ class SpotifyService: NSObject, ObservableObject, SPTSessionManagerDelegate, SPT
     }
     
     // MARK: - Playback Control
-    
-    private func handleConnectionError(_ error: Error) {
-        print("DEBUG: Connection error: \(error.localizedDescription)")
-        
-        let nsError = error as NSError
-        if nsError.domain == "com.spotify.app-remote.transport" {
-            switch nsError.code {
-            case -2001:
-                // End of stream: ok to reconnect after delay
-                print("DEBUG: End of stream detected, attempting to reconnect after delay...")
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                    self?.connect()
-                }
-            default:
-                // Other transport errors: let didFailConnectionAttemptWithError handle retries
-                print("DEBUG: Transport error, letting retry logic handle reconnection")
-                return
-            }
-        } else if nsError.domain == "com.spotify.app-remote.wamp-client" && nsError.code == -3000 {
-            // Content API error (not a container) - ignore and continue
-            print("DEBUG: Ignoring content API error (not a container)")
-            return
-        } else {
-            // For other errors, try to reconnect through normal retry logic
-            print("DEBUG: Non-transport error, attempting normal retry")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                self?.connect()
-            }
-        }
-    }
     
     func playRandomSong(from categories: Set<MusicCategory> = []) {
         Task {

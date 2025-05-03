@@ -64,16 +64,19 @@ struct ContentView: View {
                     .padding()
                 }
             }
+            .navigationTitle("SongSmash")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingSettings = true }) {
                         Image(systemName: "gear")
+                            .font(.title3.weight(.semibold))
                     }
                 }
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView(spotifyService: spotifyService)
+            SettingsView()
         }
         .onAppear {
             // Simulate loading time and initialize services
@@ -93,6 +96,11 @@ struct ContentView: View {
     }
     
     private func fetchTracksAndStartGame() {
+        guard spotifyService.isConnected else {
+            fetchError = "Spotify is not connected. Please connect to Spotify and try again."
+            print("DEBUG: Cannot start game, Spotify is not connected.")
+            return
+        }
         isFetchingTracks = true
         fetchError = nil
         fetchedTracks = []
