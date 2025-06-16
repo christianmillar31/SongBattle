@@ -27,7 +27,7 @@
 		7A6AFF882DBB1862001F5D91 /* SpotifyiOS.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7A958D802DC6DAE6007864B4 /* TeamsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A958D7F2DC6DAE6007864B4 /* TeamsView.swift */; };
 		7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */; };
-		7A9B9E392DC1CBED004491D5 /* CategorySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A9B9E372DC1CBED004491D6 /* CategorySelectionView.swift */; };
+		7AEA15B62DD95A7D00711D1B /* CategorySelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEA15B52DD95A7700711D1B /* CategorySelectionView.swift */; };
 		7AF458322DC310B900FF09AF /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF458302DC310B900FF09AF /* ViewModifiers.swift */; };
 		7AF458332DC310B900FF09AF /* Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF4582F2DC310B900FF09AF /* Configuration.swift */; };
 		7AF458342DC310B900FF09AF /* ColorTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF4582E2DC310B900FF09AF /* ColorTheme.swift */; };
@@ -71,7 +71,7 @@
 		7A6AFF862DBB1862001F5D91 /* SpotifyiOS.xcframework */ = {isa = PBXFileReference; expectedSignature = "AppleDeveloperProgram:2FNC3A47ZF:Spotify"; lastKnownFileType = wrapper.xcframework; path = SpotifyiOS.xcframework; sourceTree = "<group>"; };
 		7A958D7F2DC6DAE6007864B4 /* TeamsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamsView.swift; sourceTree = "<group>"; };
 		7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScoreSheetView.swift; sourceTree = "<group>"; };
-		7A9B9E372DC1CBED004491D6 /* CategorySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySelectionView.swift; sourceTree = "<group>"; };
+		7AEA15B52DD95A7700711D1B /* CategorySelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CategorySelectionView.swift; sourceTree = "<group>"; };
 		7AF4582E2DC310B900FF09AF /* ColorTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ColorTheme.swift; sourceTree = "<group>"; };
 		7AF4582F2DC310B900FF09AF /* Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Configuration.swift; sourceTree = "<group>"; };
 		7AF458302DC310B900FF09AF /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
@@ -130,6 +130,7 @@
 		1A1A1A1A1A1A1A1A1A1A1A2D /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				7AEA15B52DD95A7700711D1B /* CategorySelectionView.swift */,
 				7A958D7F2DC6DAE6007864B4 /* TeamsView.swift */,
 				7A0162492DC5701D00C706F1 /* AddTeamView.swift */,
 				7A01624A2DC5701D00C706F1 /* SongSelectionView.swift */,
@@ -138,7 +139,6 @@
 				1A1A1A1A1A1A1A1A1A1A1A1F /* GameView.swift */,
 				1A1A1A1A1A1A1A1A1A1A1A23 /* SettingsView.swift */,
 				7A9B9E362DC1CBED004491D5 /* ScoreSheetView.swift */,
-				7A9B9E372DC1CBED004491D6 /* CategorySelectionView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -268,6 +268,7 @@
 				7A01624C2DC5701D00C706F1 /* AddTeamView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A1C /* ContentView.swift in Sources */,
 				7A01623A2DC4A96000C706F1 /* MusicCategory.swift in Sources */,
+				7AEA15B62DD95A7D00711D1B /* CategorySelectionView.swift in Sources */,
 				7AF4583F2DC3123000FF09AF /* Game.swift in Sources */,
 				7AF458402DC3123000FF09AF /* Player.swift in Sources */,
 				7A01623D2DC4AA2400C706F1 /* GameService.swift in Sources */,
@@ -281,12 +282,11 @@
 				7A958D802DC6DAE6007864B4 /* TeamsView.swift in Sources */,
 				7AF458372DC310D700FF09AF /* LoadingView.swift in Sources */,
 				7A9B9E382DC1CBED004491D4 /* ScoreSheetView.swift in Sources */,
-				7A9B9E392DC1CBED004491D5 /* CategorySelectionView.swift in Sources */,
 				1A1A1A1A1A1A1A1A1A1A1A39 /* Team.swift in Sources */,
+				1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */,
 				7AF458322DC310B900FF09AF /* ViewModifiers.swift in Sources */,
 				7AF458332DC310B900FF09AF /* Configuration.swift in Sources */,
 				7AF458342DC310B900FF09AF /* ColorTheme.swift in Sources */,
-				1A1A1A1A1A1A1A1A1A1A1A41 /* Track.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

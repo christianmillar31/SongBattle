@@ -7,10 +7,10 @@ struct GameView: View {
     @State private var showingAddTeam = false
     @State private var showingCategorySelection = false
     
-    init() {
-        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: GameService.shared))
+    init(gameService: GameService) {
+        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: gameService))
     }
-    
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -253,5 +253,5 @@ struct SongDisplayView: View {
 }
 
 #Preview {
-    GameView()
+    GameView(gameService: GameService(spotifyService: SpotifyService.shared))
 } 
