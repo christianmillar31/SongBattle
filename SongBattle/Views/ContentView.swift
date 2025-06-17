@@ -51,7 +51,6 @@ struct ContentView: View {
                             .font(.largeTitle.bold())
                             .foregroundColor(.white)
                         TeamsView(gameService: gameService)
-                            .cardStyle()
                         Button(action: {
                             showSongSelection = true
                         }) {
@@ -63,35 +62,19 @@ struct ContentView: View {
                     }
                     .padding()
                 }
-                // Fixed gear overlay
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: { showingSettings = true }) {
-                            Image(systemName: "gear")
-                                .font(.title3.weight(.semibold))
-                                .padding(8)
-                                .background(Color.black.opacity(0.3))
-                                .clipShape(Circle())
-                        }
-                    }
-                    Spacer()
-                }
-                .padding(.top, 10)
-                .padding(.trailing, 10)
             }
             .navigationTitle("SongSmash")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showingSettings) {
-                SettingsView()
-            }
-            .onAppear {
-                // Simulate loading time and initialize services
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    withAnimation {
-                        isLoading = false
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingSettings = true }) {
+                        Image(systemName: "gear")
+                            .font(.title3.weight(.semibold))
                     }
                 }
+            }
+            .sheet(isPresented: $showingSettings) {
+                SettingsView()
             }
             .background(
                 NavigationLink(
@@ -100,6 +83,14 @@ struct ContentView: View {
                     label: { EmptyView() }
                 )
             )
+        }
+        .onAppear {
+            // Simulate loading time and initialize services
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                withAnimation {
+                    isLoading = false
+                }
+            }
         }
     }
     
@@ -149,4 +140,6 @@ struct ContentView: View {
 #Preview {
     ContentView()
         .environmentObject(SpotifyService.shared)
-} 
+        .environmentObject(GameService(spotifyService: SpotifyService.shared))
+}
+

@@ -7,20 +7,13 @@ struct GameView: View {
     @State private var showingAddTeam = false
     @State private var showingCategorySelection = false
     
-    init(gameService: GameService) {
-        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: gameService))
+    init() {
+        _viewModel = StateObject(wrappedValue: GameViewModel(gameService: GameService(spotifyService: SpotifyService.shared)))
     }
-
+    
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [Color.theme.gradientStart, Color.theme.gradientEnd]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
+            Color.theme.backgroundColor.ignoresSafeArea()
             VStack {
                 if viewModel.isLoading {
                     ProgressView("Loading...")
@@ -38,20 +31,19 @@ struct GameView: View {
     private var startGameView: some View {
         VStack(spacing: 20) {
             Text("Welcome to SongSmash!")
-                .font(.title)
-                .foregroundColor(.white)
-                .padding()
-            
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundColor(Color.theme.primaryText)
+                .padding(.top, 8)
             // Team Management Section
             VStack(spacing: 15) {
                 Text("Teams")
                     .font(.headline)
-                    .foregroundColor(.white)
-                
+                    .foregroundColor(Color.theme.primaryText)
                 ForEach(viewModel.teams) { team in
                     HStack {
                         Text(team.name)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color.theme.primaryText)
+                            .font(.body)
                         Spacer()
                         Button(action: {
                             Task {
@@ -64,46 +56,35 @@ struct GameView: View {
                     }
                     .padding(.horizontal)
                 }
-                
                 Button(action: { showingAddTeam = true }) {
                     HStack {
                         Image(systemName: "plus.circle.fill")
                         Text("Add Team")
                     }
-                    .foregroundColor(.white)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color.theme.accent.opacity(0.3))
-                    .cornerRadius(10)
                 }
+                .lightButtonStyle()
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.black.opacity(0.3))
-            )
-            
+            .padding(24)
+            .background(Color.theme.cardBackground)
+            .cornerRadius(20)
+            .shadow(color: Color.theme.cardShadow, radius: 8, x: 0, y: 4)
             // Music Categories Section
             VStack(spacing: 15) {
                 HStack {
                     Text("Music Categories")
                         .font(.headline)
-                        .foregroundColor(.white)
+                        .foregroundColor(Color.theme.primaryText)
                     Spacer()
                     Button(action: { showingCategorySelection = true }) {
                         Text("Select")
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(Color.theme.accent.opacity(0.3))
-                            .cornerRadius(8)
                     }
+                    .lightButtonStyle()
+                    .frame(height: 36)
                 }
-                
                 if viewModel.selectedCategories.isEmpty {
                     Text("No categories selected - all music will be included")
-                        .foregroundColor(.white.opacity(0.8))
-                        .font(.subheadline)
+                        .foregroundColor(Color.theme.primaryText.opacity(0.7))
+                        .font(.body)
                 } else {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -112,19 +93,17 @@ struct GameView: View {
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
-                                    .background(Color.theme.accent)
+                                    .background(Color.theme.accentColor)
                                     .cornerRadius(8)
                             }
                         }
                     }
                 }
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color.black.opacity(0.3))
-            )
-            
+            .padding(24)
+            .background(Color.theme.cardBackground)
+            .cornerRadius(20)
+            .shadow(color: Color.theme.cardShadow, radius: 8, x: 0, y: 4)
             if viewModel.canStartGame {
                 Button(action: {
                     Task {
@@ -132,17 +111,13 @@ struct GameView: View {
                     }
                 }) {
                     Text("Start Game")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.theme.accent)
-                        .cornerRadius(10)
                 }
-                .padding()
+                .lightButtonStyle()
+                .padding(.top, 8)
             } else {
                 Text("Add at least 2 teams to start playing")
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(Color.theme.primaryText.opacity(0.7))
+                    .font(.body)
             }
         }
         .padding()
@@ -253,5 +228,5 @@ struct SongDisplayView: View {
 }
 
 #Preview {
-    GameView(gameService: GameService(spotifyService: SpotifyService.shared))
-} 
+    GameView()
+}

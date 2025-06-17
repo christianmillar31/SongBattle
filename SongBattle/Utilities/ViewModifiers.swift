@@ -76,6 +76,26 @@ struct TitleStyle: ViewModifier {
     }
 }
 
+// MARK: - Light Button Style
+struct LightButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(.headline, design: .rounded))
+            .foregroundColor(Color.theme.accentColor)
+            .padding(.vertical, 14)
+            .padding(.horizontal, 24)
+            .background(Color.theme.buttonBackground)
+            .cornerRadius(16)
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.theme.accentColor, lineWidth: 1)
+            )
+            .shadow(color: Color.theme.buttonShadow, radius: 6, x: 0, y: 4)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
 // MARK: - View Extensions
 extension View {
     func primaryButtonStyle() -> some View {
@@ -96,5 +116,9 @@ extension View {
     
     func titleStyle() -> some View {
         modifier(TitleStyle())
+    }
+    
+    func lightButtonStyle() -> some View {
+        self.buttonStyle(LightButtonStyle())
     }
 } 
